@@ -23,6 +23,7 @@ wheels/
 
 # Virtual Environment
 .venv/
+venv/
 ENV/
 
 # IDEs
@@ -34,15 +35,30 @@ ENV/
 # Project specific
 data/raw/*
 data/processed/*
+data/database/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/database/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
 
 # OS specific
 .DS_Store
 Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
 
 # Database files
 *.db
 *.sqlite
 *.sqlite3
+*.bak
 
+# Environment variables
+.env
