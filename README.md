@@ -52,9 +52,20 @@ restaurant_data_project/
 ## Installation
 
 1. Clone the repository
-2. Create and activate a virtual environment
-3. Install dependencies
-
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Install Chrome browser if not already installed
+5. Run the setup:
+   ```bash
+   python setup.py install
+   ```
 
 ## Configuration
 
@@ -67,4 +78,3 @@ Key configurations can be modified in these files to adjust:
 - Scraping parameters
 - Database settings
 - Data validation rules
-

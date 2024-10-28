@@ -4,7 +4,7 @@ import sqlite3
 import logging
 from pathlib import Path
 from datetime import datetime
-from config.database_config import DATABASE, RESTAURANT_SCHEMA
+from ..config.database_config import DATABASE, RESTAURANT_SCHEMA
 
 # Setup logging
 logging.basicConfig(

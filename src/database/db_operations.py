@@ -1,5 +1,5 @@
 from pathlib import Path
-from config.database_config import DATABASE, RESTAURANT_SCHEMA
+from ..config.database_config import DATABASE, RESTAURANT_SCHEMA
 import sqlite3
 import pandas as pd
 import logging
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         db.connect()
         
         # Load and insert data
-        df = pd.read_csv("S:/restaurant_data_project/data/processed/cleaned_restaurants_enhanced.csv")
+        df = pd.read_csv(Path(__file__).parent.parent.parent / "data/processed/cleaned_restaurants_enhanced.csv")
         db.insert_restaurant_data(df)
         
     finally:

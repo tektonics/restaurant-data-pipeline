@@ -1,23 +1,10 @@
 import pandas as pd
 import re
+from ..config.config import RAW_RESTAURANTS_CSV, CLEANED_RESTAURANTS_CSV
+from ..config.config import state_abbreviations
 
-# Load your CSV file
-file_path = 'S:/restaurant_data_project/data/raw/raw_all_restaurants.csv'  # Replace with the correct path
-data = pd.read_csv(file_path)
-
-# Dictionary mapping all state names to their abbreviations
-state_abbreviations = {
-    "Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR", "California": "CA", 
-    "Colorado": "CO", "Connecticut": "CT", "Delaware": "DE", "Florida": "FL", "Georgia": "GA", 
-    "Hawaii": "HI", "Idaho": "ID", "Illinois": "IL", "Indiana": "IN", "Iowa": "IA", "Kansas": "KS", 
-    "Kentucky": "KY", "Louisiana": "LA", "Maine": "ME", "Maryland": "MD", "Massachusetts": "MA", 
-    "Michigan": "MI", "Minnesota": "MN", "Mississippi": "MS", "Missouri": "MO", "Montana": "MT", 
-    "Nebraska": "NE", "Nevada": "NV", "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM", 
-    "New York": "NY", "North Carolina": "NC", "North Dakota": "ND", "Ohio": "OH", "Oklahoma": "OK", 
-    "Oregon": "OR", "Pennsylvania": "PA", "Rhode Island": "RI", "South Carolina": "SC", 
-    "South Dakota": "SD", "Tennessee": "TN", "Texas": "TX", "Utah": "UT", "Vermont": "VT", 
-    "Virginia": "VA", "Washington": "WA", "West Virginia": "WV", "Wisconsin": "WI", "Wyoming": "WY"
-}
+# Move state_abbreviations to config.py and import it
+from config.config import state_abbreviations
 
 def clean_and_split_address(address):
     if not address:
@@ -83,13 +70,6 @@ def clean_and_split_address(address):
 
     return cleaned_address_components
 
-# Apply the cleaning and splitting function to the 'Address' column
-data[["Cleaned Address", "City", "State", "Zip"]] = data['Address'].apply(lambda x: pd.Series(clean_and_split_address(x)))
-
-# Remove rows with null, blank, or empty zip values
-data = data[data['Zip'].notna() & (data['Zip'] != '')]
-
-#Fill in missing city names
 def fill_missing_city(df):
     grouped = df.groupby(['State', 'Zip'])
     for (state, zip_code), group in grouped:
@@ -98,9 +78,6 @@ def fill_missing_city(df):
             df.loc[(df['State'] == state) & (df['Zip'] == zip_code), 'City'] = cities[0]
     return df
 
-data = fill_missing_city(data)
-
-# Remove duplicate rows based on specified conditions
 def remove_duplicates(df):
     # Sort the dataframe to prioritize rows with more information
     df = df.sort_values(['Restaurant Name', 'Cleaned Address', 'City', 'Zip'], 
@@ -121,11 +98,24 @@ def remove_duplicates(df):
     
     return df
 
-# Apply the duplicate removal function
-data = remove_duplicates(data)
+def process_restaurant_data(input_file=RAW_RESTAURANTS_CSV, output_file=CLEANED_RESTAURANTS_CSV):
+    """Main function to process restaurant data"""
+    data = pd.read_csv(input_file)
+    
+    # Apply the cleaning and splitting function
+    data[["Cleaned Address", "City", "State", "Zip"]] = data['Address'].apply(
+        lambda x: pd.Series(clean_and_split_address(x))
+    )
+    
+    # Apply all the cleaning steps
+    data = data[data['Zip'].notna() & (data['Zip'] != '')]
+    data = fill_missing_city(data)
+    data = remove_duplicates(data)
+    
+    # Save the cleaned data
+    data.to_csv(output_file, index=False)
+    print(f"Cleaned and deduplicated data has been saved to {output_file}")
+    return data
 
-# Save the cleaned and deduplicated data to a new CSV file
-output_file_path = 'S:/restaurant_data_project/data/raw/cleaned_restaurants.csv'
-data.to_csv(output_file_path, index=False)
-
-print(f"Cleaned and deduplicated data has been saved to {output_file_path}")
+if __name__ == "__main__":
+    process_restaurant_data()
