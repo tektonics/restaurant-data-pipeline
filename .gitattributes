@@ -1,0 +1,20 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Python files
+*.py text diff=python
+
+# Documentation
+*.md text diff=markdown
+*.rst text
+
+# Data files
+*.csv text
+*.json text
+*.yaml text
+*.yml text
+
+# Don't modify binary files
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
