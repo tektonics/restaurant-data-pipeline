@@ -9,7 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException
 from bs4 import BeautifulSoup
-from ..config.config import CLEANED_RESTAURANTS_CSV, ENHANCED_RESTAURANTS_CSV, CHROME_OPTIONS, TIMEOUT_CONFIG
+from config.config import CLEANED_RESTAURANTS_CSV, ENHANCED_RESTAURANTS_CSV, CHROME_OPTIONS, TIMEOUT_CONFIG
 import logging
 from src.utils.helpers import ensure_directories_exist
 from pathlib import Path
@@ -126,8 +126,11 @@ def fetch_google_maps_data(url, driver=None):
             # Main container for all sections
             info_container = safe_find_element(driver, By.CSS_SELECTOR, 'div.m6QErb[role="region"]')
             if info_container:
-                # Get all sections
-                info_sections = info_container.find_elements(By.CSS_SELECTOR, 'div.iP2t7d')
+                # Get all sections including those with accessibility info
+                info_sections = info_container.find_elements(
+                    By.CSS_SELECTOR, 
+                    'div.iP2t7d, div.LBgpqf'
+                )
                 
                 for section in info_sections:
                     try:
@@ -135,46 +138,12 @@ def fetch_google_maps_data(url, driver=None):
                         title_element = section.find_element(By.CSS_SELECTOR, 'h2.iL3Qke')
                         section_title = title_element.text.strip()
                         
-                        # Initialize lists for this section
-                        available_options = []
-                        section_unavailable = []
-                        
-                        # Get all options in the section
-                        options = section.find_elements(By.CSS_SELECTOR, 'div.iNvpkb')
-                        
-                        for option in options:
-                            # Get the span with aria-label for the text
-                            option_span = option.find_element(By.CSS_SELECTOR, 'span[aria-label]')
-                            option_text = option_span.get_attribute('aria-label')
-                            
-                            # Check if option is unavailable (has XJynsc class or OazX1c class)
-                            not_available = any([
-                                'XJynsc' in option.get_attribute('class'),
-                                option.find_elements(By.CSS_SELECTOR, 'span.OazX1c'),
-                                option_text.startswith("No "),
-                                option_text.startswith("Doesn't "),
-                                "not available" in option_text.lower()
-                            ])
-                            
-                            if not_available:
-                                # Clean up the text for unavailable items
-                                if option_text.startswith("No "):
-                                    option_text = option_text[3:]
-                                elif option_text.startswith("Doesn't "):
-                                    option_text = option_text[8:]
-                                section_unavailable.append(option_text)
-                            else:
-                                # Clean up the text for available items
-                                if option_text.startswith("Has "):
-                                    option_text = option_text[4:]
-                                elif option_text.startswith("Serves "):
-                                    option_text = option_text[7:]
-                                available_options.append(option_text)
+                        # Extract available and unavailable options
+                        available_options, section_unavailable = extract_attributes(section)
                         
                         # Update data dictionary based on section title
-                        if section_title in data:
-                            if available_options:
-                                data[section_title] = ', '.join(available_options)
+                        if section_title in data and available_options:
+                            data[section_title] = ', '.join(available_options)
                         
                         # Add unavailable options to the list
                         if section_unavailable:
@@ -205,6 +174,53 @@ def fetch_google_maps_data(url, driver=None):
     except Exception as e:
         logger.error(f"Error fetching Google Maps data: {str(e)}")
         return data
+
+def extract_attributes(section):
+    """Extract attributes from a section, handling both available and unavailable items"""
+    available_options = []
+    unavailable_options = []
+    
+    options = section.find_elements(By.CSS_SELECTOR, 'div.iNvpkb, div.Rz1y8b')
+    for option in options:
+        try:
+            # Check for aria-label in both direct span and nested spans
+            spans = option.find_elements(By.CSS_SELECTOR, 'span[aria-label]')
+            if not spans:
+                continue
+                
+            option_text = spans[0].get_attribute('aria-label')
+            
+            # Check various indicators of unavailability
+            not_available = any([
+                'XJynsc' in option.get_attribute('class'),
+                option.find_elements(By.CSS_SELECTOR, 'span.OazX1c'),
+                'wmQCje' in option.get_attribute('class'),  # Accessibility icons
+                option_text.startswith("No "),
+                option_text.startswith("Doesn't "),
+                "not available" in option_text.lower()
+            ])
+            
+            # Clean up the text
+            option_text = clean_text(option_text)
+            if option_text.startswith("Has "):
+                option_text = option_text[4:]
+            elif option_text.startswith("Serves "):
+                option_text = option_text[7:]
+            elif option_text.startswith("No "):
+                option_text = option_text[3:]
+            elif option_text.startswith("Doesn't "):
+                option_text = option_text[8:]
+                
+            if not_available:
+                unavailable_options.append(option_text)
+            else:
+                available_options.append(option_text)
+                
+        except Exception as e:
+            logger.debug(f"Error processing option: {str(e)}")
+            continue
+            
+    return available_options, unavailable_options
 
 def process_csv(input_file, output_file):
     """Process CSV file and fetch Google Maps data"""
