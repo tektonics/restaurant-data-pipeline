@@ -126,3 +126,10 @@ data/database/backups/*
 # Python cache from all the src modules
 src/**/__pycache__/
 
+# Keep test directory structure but ignore generated test data
+tests/**/*.pyc
+tests/__pycache__/
+tests/.pytest_cache/
+tests/test_data/*.csv
+!tests/test_data/sample_restaurants.csv 
+
