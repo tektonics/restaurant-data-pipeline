@@ -24,7 +24,6 @@ setup(
         'beautifulsoup4>=4.9.3',
         'selenium>=4.0.0',
         'python-dotenv>=0.19.0',
-        'pathlib>=1.0.1',
     ],
     python_requires='>=3.8',
 )

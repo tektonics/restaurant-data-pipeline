@@ -28,7 +28,7 @@ def clean_text(text):
     """Clean and normalize text"""
     if not text:
         return ''
-    return re.sub(r'\s+', ' ', text).strip()
+    return ' '.join(text.split())
 
 def safe_find_element(driver, by, selector, timeout=10):
     """Safely find an element with explicit wait and error handling"""
@@ -76,36 +76,32 @@ def fetch_google_maps_data(url, driver=None):
 
     try:
         driver.get(url)
-        time.sleep(2)
+        time.sleep(1.5)
 
         # Basic information
         try:
-            # Get rating and review count together
-            rating_element = safe_find_element(driver, By.CSS_SELECTOR, 'div.F7nice')
-            if rating_element:
-                rating_text = rating_element.text
-                # Extract rating
-                rating_match = re.search(r'(\d+\.\d+)', rating_text)
-                if rating_match:
-                    data['Star Rating'] = rating_match.group(1)
-                # Extract review count
-                reviews_match = re.search(r'\(([0-9,]+)\)', rating_text)
-                if reviews_match:
-                    data['Number of Reviews'] = reviews_match.group(1).replace(',', '')
+            elements = WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((
+                    By.CSS_SELECTOR, 
+                    'div.F7nice, button.DkEaL[jsaction*="category"], span[aria-label*="Price"]'
+                ))
+            )
+            
+            for element in elements:
+                class_name = element.get_attribute('class')
+                if 'F7nice' in class_name:
+                    rating_text = element.text
+                    if rating_match := re.search(r'(\d+\.\d+)', rating_text):
+                        data['Star Rating'] = rating_match.group(1)
+                    if reviews_match := re.search(r'\(([0-9,]+)\)', rating_text):
+                        data['Number of Reviews'] = reviews_match.group(1).replace(',', '')
+                elif 'DkEaL' in class_name:
+                    data['Restaurant Category'] = element.text
+                else:
+                    aria_label = element.get_attribute('aria-label')
+                    if aria_label and 'Price' in aria_label:
+                        data['Price Range'] = element.text.strip()
 
-            # Get category
-            try:
-                category = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "button.DkEaL[jsaction*='category']"))
-                ).text
-                data['Restaurant Category'] = category
-            except:
-                data['Restaurant Category'] = 'Not available'
-
-            # Get price range
-            price_range = safe_find_element(driver, By.CSS_SELECTOR, 'span[aria-label*="Price"]')
-            if price_range:
-                data['Price Range'] = price_range.text.strip()
         except Exception as e:
             logger.error(f"Error extracting basic info: {str(e)}")
 
@@ -114,38 +110,33 @@ def fetch_google_maps_data(url, driver=None):
             about_tab = safe_find_element(driver, By.CSS_SELECTOR, 'button[aria-label*="About"]')
             if about_tab:
                 about_tab.click()
-                time.sleep(2)  # Increased wait time for content to load
+                time.sleep(1)
         except:
             logger.warning("About tab not found or not clickable")
 
-        # Track all unavailable options
-        unavailable_items = []
-
         # Extract all information sections
         try:
-            # Main container for all sections
-            info_container = safe_find_element(driver, By.CSS_SELECTOR, 'div.m6QErb[role="region"]')
+            info_container = WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'div.m6QErb[role="region"]'))
+            )
+            
             if info_container:
-                # Get all sections including those with accessibility info
                 info_sections = info_container.find_elements(
                     By.CSS_SELECTOR, 
                     'div.iP2t7d, div.LBgpqf'
                 )
                 
+                unavailable_items = []
                 for section in info_sections:
                     try:
-                        # Get section title
                         title_element = section.find_element(By.CSS_SELECTOR, 'h2.iL3Qke')
                         section_title = title_element.text.strip()
                         
-                        # Extract available and unavailable options
                         available_options, section_unavailable = extract_attributes(section)
                         
-                        # Update data dictionary based on section title
                         if section_title in data and available_options:
                             data[section_title] = ', '.join(available_options)
                         
-                        # Add unavailable options to the list
                         if section_unavailable:
                             unavailable_items.extend(section_unavailable)
                             
@@ -153,7 +144,6 @@ def fetch_google_maps_data(url, driver=None):
                         logger.error(f"Error processing section: {str(e)}")
                         continue
 
-                # Combine all unavailable items into the Doesnt Offer field
                 if unavailable_items:
                     data['Doesnt Offer'] = ', '.join(unavailable_items)
                     
@@ -161,13 +151,8 @@ def fetch_google_maps_data(url, driver=None):
             logger.error(f"Error extracting information sections: {str(e)}")
 
         # Extract coordinates from URL
-        try:
-            coords = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', driver.current_url)
-            if coords:
-                data['Latitude'] = coords.group(1)
-                data['Longitude'] = coords.group(2)
-        except Exception as e:
-            logger.error(f"Error extracting coordinates: {str(e)}")
+        if coords := re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', driver.current_url):
+            data['Latitude'], data['Longitude'] = coords.groups()
 
         return data
 
@@ -183,38 +168,27 @@ def extract_attributes(section):
     options = section.find_elements(By.CSS_SELECTOR, 'div.iNvpkb, div.Rz1y8b')
     for option in options:
         try:
-            # Check for aria-label in both direct span and nested spans
             spans = option.find_elements(By.CSS_SELECTOR, 'span[aria-label]')
             if not spans:
                 continue
                 
             option_text = spans[0].get_attribute('aria-label')
             
-            # Check various indicators of unavailability
-            not_available = any([
-                'XJynsc' in option.get_attribute('class'),
-                option.find_elements(By.CSS_SELECTOR, 'span.OazX1c'),
-                'wmQCje' in option.get_attribute('class'),  # Accessibility icons
-                option_text.startswith("No "),
-                option_text.startswith("Doesn't "),
+            not_available = (
+                'XJynsc' in option.get_attribute('class') or
+                bool(option.find_elements(By.CSS_SELECTOR, 'span.OazX1c')) or
+                'wmQCje' in option.get_attribute('class') or
+                option_text.startswith(("No ", "Doesn't ")) or
                 "not available" in option_text.lower()
-            ])
+            )
             
-            # Clean up the text
             option_text = clean_text(option_text)
-            if option_text.startswith("Has "):
-                option_text = option_text[4:]
-            elif option_text.startswith("Serves "):
-                option_text = option_text[7:]
-            elif option_text.startswith("No "):
-                option_text = option_text[3:]
-            elif option_text.startswith("Doesn't "):
-                option_text = option_text[8:]
+            for prefix in ("Has ", "Serves ", "No ", "Doesn't "):
+                if option_text.startswith(prefix):
+                    option_text = option_text[len(prefix):]
+                    break
                 
-            if not_available:
-                unavailable_options.append(option_text)
-            else:
-                available_options.append(option_text)
+            (unavailable_options if not_available else available_options).append(option_text)
                 
         except Exception as e:
             logger.debug(f"Error processing option: {str(e)}")
@@ -236,16 +210,15 @@ def process_csv(input_file, output_file):
     ]
 
     try:
+        with open(input_file, 'r', encoding='utf-8') as f:
+            total_rows = sum(1 for _ in csv.DictReader(f))
+
         with open(input_file, 'r', encoding='utf-8') as infile, \
              open(output_file, 'w', newline='', encoding='utf-8') as outfile:
             
             reader = csv.DictReader(infile)
             writer = csv.DictWriter(outfile, fieldnames=fieldnames)
             writer.writeheader()
-            
-            total_rows = sum(1 for row in csv.DictReader(open(input_file, 'r', encoding='utf-8')))
-            infile.seek(0)
-            next(reader)  # Skip header
             
             driver = None
             for i, row in enumerate(reader, 1):

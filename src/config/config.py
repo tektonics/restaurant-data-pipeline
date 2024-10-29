@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import logging
 
 # Get project root directory
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -89,7 +90,25 @@ CHROME_OPTIONS = [
     "--ignore-certificate-errors",
     "--disable-software-rasterizer",
     "--disable-web-security",
-    "--allow-running-insecure-content"
+    "--allow-running-insecure-content",
+    "--disable-features=MediaFoundationVideoCapture",
+    "--disable-features=VizDisplayCompositor",
+    "--disable-features=UseOzonePlatform",
+    "--disable-features=Vulkan",
+    "--disable-features=WebRTC",
+    "--disable-features=AudioServiceOutOfProcess",
+    "--disable-setuid-sandbox",
+    "--disable-accelerated-video-decode",
+    "--disable-accelerated-video-encode",
+    "--disable-gpu-memory-buffer-video-frames",
+    "--disable-gpu-compositing",
+    "--disable-gpu-rasterization",
+    "--disable-gpu-sandbox",
+    "--disable-webgl",
+    "--disable-webgl2",
+    "--enable-unsafe-swiftshader",  # Add this to address the WebGL warning
+    "--disable-features=MediaFoundationVideoCapture,VizDisplayCompositor,UseOzonePlatform,Vulkan,WebRTC,AudioServiceOutOfProcess",
+    "--silent",
 ]
 
 # Add timeout settings
@@ -146,3 +165,6 @@ WEBDRIVER_CONFIG = {
     'page_load_timeout': 30,
     'options': CHROME_OPTIONS
 }
+
+# Also add this logging configuration
+logging.getLogger('selenium').setLevel(logging.ERROR)
