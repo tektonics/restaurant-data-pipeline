@@ -3,9 +3,6 @@ import re
 from ..config.config import RAW_RESTAURANTS_CSV, CLEANED_RESTAURANTS_CSV
 from ..config.config import state_abbreviations
 
-# Move state_abbreviations to config.py and import it
-from config.config import state_abbreviations
-
 def clean_and_split_address(address):
     if not address:
         return {"Address": "", "City": "", "State": "", "Zip": ""}

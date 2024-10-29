@@ -9,7 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException
 from bs4 import BeautifulSoup
-from config.config import CLEANED_RESTAURANTS_CSV, ENHANCED_RESTAURANTS_CSV, CHROME_OPTIONS, TIMEOUT_CONFIG
+from ..config.config import CLEANED_RESTAURANTS_CSV, ENHANCED_RESTAURANTS_CSV, CHROME_OPTIONS, TIMEOUT_CONFIG
 import logging
 from src.utils.helpers import ensure_directories_exist
 from pathlib import Path

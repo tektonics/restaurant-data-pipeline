@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # Base project directory
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 # Database settings
 DATABASE = {
