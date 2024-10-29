@@ -62,3 +62,67 @@ Desktop.ini
 
 # Environment variables
 .env
+
+# Additional entries to add to .gitignore
+
+# Coverage reports
+.coverage
+coverage.xml
+htmlcov/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Test cache
+.pytest_cache/
+.tox/
+nosetests.xml
+coverage.xml
+
+# Documentation builds
+docs/_build/
+docs/api/
+
+# Local development
+local_settings.py
+*.log
+celerybeat-schedule
+*.pot
+
+# Backup files
+*.bak
+*~
+*.swp
+*.swo
+
+# Chrome WebDriver
+chromedriver
+chromedriver.exe
+
+# Environment
+.python-version
+.env.local
+.env.*.local
+
+# Distribution
+dist/
+build/
+*.manifest
+pip-log.txt
+
+# Temporary files
+tmp/
+temp/
+
+# Chrome WebDriver files
+chromedriver.log
+geckodriver.log
+
+# Database backups
+data/database/backups/*
+!data/database/backups/.gitkeep
+
+# Python cache from all the src modules
+src/**/__pycache__/
+
