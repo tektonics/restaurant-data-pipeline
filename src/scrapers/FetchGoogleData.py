@@ -76,11 +76,11 @@ def fetch_google_maps_data(url, driver=None):
 
     try:
         driver.get(url)
-        time.sleep(1.5)
+        time.sleep(0.5)
 
         # Basic information
         try:
-            elements = WebDriverWait(driver, 10).until(
+            elements = WebDriverWait(driver, 5).until(
                 EC.presence_of_all_elements_located((
                     By.CSS_SELECTOR, 
                     'div.F7nice, button.DkEaL[jsaction*="category"], span[aria-label*="Price"]'
@@ -105,18 +105,19 @@ def fetch_google_maps_data(url, driver=None):
         except Exception as e:
             logger.error(f"Error extracting basic info: {str(e)}")
 
-        # Try to click "About" tab if it exists
-        try:
-            about_tab = safe_find_element(driver, By.CSS_SELECTOR, 'button[aria-label*="About"]')
-            if about_tab:
-                about_tab.click()
-                time.sleep(1)
-        except:
-            logger.warning("About tab not found or not clickable")
+        # Only click About tab if we haven't found all information yet
+        if 'Not available' in data.values():
+            try:
+                about_tab = safe_find_element(driver, By.CSS_SELECTOR, 'button[aria-label*="About"]', timeout=3)
+                if about_tab:
+                    about_tab.click()
+                    time.sleep(0.5)
+            except:
+                pass
 
-        # Extract all information sections
+        # Extract information sections with shorter timeout
         try:
-            info_container = WebDriverWait(driver, 5).until(
+            info_container = WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'div.m6QErb[role="region"]'))
             )
             
@@ -209,7 +210,40 @@ def process_csv(input_file, output_file):
         'Payments', 'Parking', 'Doesnt Offer'
     ]
 
+    # Verify input file exists and has content
+    if not Path(input_file).exists():
+        logger.error(f"Input file does not exist: {input_file}")
+        return
+        
+    # Check if file has content
+    with open(input_file, 'r', encoding='utf-8') as f:
+        first_line = f.readline().strip()
+        if not first_line:
+            logger.error("Input file is empty")
+            return
+            
+        # Verify headers
+        expected_headers = {'Restaurant Name', 'Address', 'City', 'State'}
+        actual_headers = set(first_line.split(','))
+        missing_headers = expected_headers - actual_headers
+        if missing_headers:
+            logger.error(f"Missing required headers: {missing_headers}")
+            return
+
     try:
+        # Initialize driver once before the loop
+        service = Service(ChromeDriverManager().install())
+        chrome_options = Options()
+        for option in CHROME_OPTIONS:
+            chrome_options.add_argument(option)
+        # Add these performance-focused options
+        chrome_options.add_argument('--blink-settings=imagesEnabled=false')  # Disable images
+        chrome_options.add_argument('--disable-javascript')  # Disable JS where possible
+        chrome_options.add_argument('--disk-cache-size=1')  # Minimize disk cache
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        driver.implicitly_wait(5)  # Reduced from TIMEOUT_CONFIG['element_wait']
+        driver.set_page_load_timeout(15)  # Reduced from TIMEOUT_CONFIG['page_load']
+
         # First, write just the header if file doesn't exist
         if not Path(output_file).exists():
             with open(output_file, 'w', newline='', encoding='utf-8') as outfile:
@@ -223,25 +257,28 @@ def process_csv(input_file, output_file):
         # Process each row
         with open(input_file, 'r', encoding='utf-8') as infile:
             reader = csv.DictReader(infile)
-            driver = None
             
             for i, row in enumerate(reader, 1):
                 try:
-                    if driver is None:
-                        service = Service(ChromeDriverManager().install())
-                        chrome_options = Options()
-                        for option in CHROME_OPTIONS:
-                            chrome_options.add_argument(option)
-                        driver = webdriver.Chrome(service=service, options=chrome_options)
-                        driver.implicitly_wait(TIMEOUT_CONFIG['element_wait'])
-                        driver.set_page_load_timeout(TIMEOUT_CONFIG['page_load'])
-                    
                     logger.info(f"Processing row {i} of {total_rows}: {row.get('Restaurant Name', 'Unknown')}")
                     
-                    google_maps_url = row.get('Google Maps Link', '').strip()
-                    if not google_maps_url:
-                        search_query = f"{row['Restaurant Name']} {row.get('Address', '')} restaurant"
+                    # Fix the Google Maps URL handling
+                    google_maps_url = row.get('Google Maps Link')
+                    if not google_maps_url or google_maps_url.strip() == '':
+                        # Create search query with restaurant name and address
+                        search_components = []
+                        if row.get('Restaurant Name'):
+                            search_components.append(row['Restaurant Name'])
+                        if row.get('Address'):
+                            search_components.append(row['Address'])
+                        if row.get('City'):
+                            search_components.append(row['City'])
+                        if row.get('State'):
+                            search_components.append(row['State'])
+                            
+                        search_query = ' '.join(search_components) + ' restaurant'
                         google_maps_url = f"https://www.google.com/maps/search/{quote(search_query)}"
+                        logger.info(f"Generated search URL for: {search_query}")
                     
                     google_data = fetch_google_maps_data(google_maps_url, driver=driver)
                     row.update(google_data)
@@ -251,44 +288,31 @@ def process_csv(input_file, output_file):
                         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
                         writer.writerow(row)
                     
-                    # Log the collected data
-                    logger.info(f"\nData collected for {row['Restaurant Name']}:")
-                    logger.info("-" * 50)
-                    logger.info(f"Star Rating: {google_data['Star Rating']}")
-                    logger.info(f"Reviews: {google_data['Number of Reviews']}")
-                    logger.info(f"Category: {google_data['Restaurant Category']}")
-                    logger.info(f"Coordinates: {google_data['Latitude']}, {google_data['Longitude']}")
+                    # Log success
+                    logger.info(f"Successfully processed: {row['Restaurant Name']}")
                     
-                    # Log additional information if available
-                    additional_info = {k: v for k, v in google_data.items() 
-                                    if v != 'Not available' and k not in 
-                                    ['Star Rating', 'Number of Reviews', 'Restaurant Category', 'Latitude', 'Longitude']}
-                    if additional_info:
-                        logger.info("\nAdditional Information:")
-                        for key, value in additional_info.items():
-                            logger.info(f"{key}: {value}")
-                    logger.info("-" * 50 + "\n")
-                    
-                    time.sleep(random.uniform(2, 4))
+                    # Reduce wait between requests
+                    time.sleep(random.uniform(1, 2))
                     
                 except Exception as e:
                     logger.error(f"Error processing row {i}: {str(e)}")
-                    if driver:
-                        try:
+                    logger.error(f"Row data: {row}")  # Add this for debugging
+                    try:
+                        driver.get('about:blank')
+                    except:
+                        if driver:
                             driver.quit()
-                        except:
-                            pass
-                        driver = None
+                            # Reinitialize driver if it fails
+                            driver = webdriver.Chrome(service=service, options=chrome_options)
+                            driver.implicitly_wait(5)
+                            driver.set_page_load_timeout(15)
                     continue
             
     except Exception as e:
         logger.error(f"Error processing CSV: {str(e)}")
     finally:
         if driver:
-            try:
-                driver.quit()
-            except:
-                pass
+            driver.quit()
 
 def process_google_data(input_file=CLEANED_RESTAURANTS_CSV, output_file=ENHANCED_RESTAURANTS_CSV):
     """Main function to process Google Maps data"""

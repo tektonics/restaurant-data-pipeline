@@ -77,38 +77,20 @@ EATER_CONFIG = {
 
 # Selenium/Chrome configuration
 CHROME_OPTIONS = [
-    "--headless=new",  # Updated headless mode syntax
+    "--headless=new",
     "--disable-gpu",
     "--no-sandbox",
     "--disable-dev-shm-usage",
-    "--disable-logging",
-    "--log-level=3",
+    "--ignore-certificate-errors-spki-list",
+    "--ignore-ssl-errors",
+    "--log-level=2",
     "--disable-extensions",
     "--disable-notifications",
     "--disable-infobars",
     "--window-size=1920,1080",
-    "--ignore-certificate-errors",
-    "--disable-software-rasterizer",
-    "--disable-web-security",
-    "--allow-running-insecure-content",
-    "--disable-features=MediaFoundationVideoCapture",
-    "--disable-features=VizDisplayCompositor",
-    "--disable-features=UseOzonePlatform",
-    "--disable-features=Vulkan",
-    "--disable-features=WebRTC",
-    "--disable-features=AudioServiceOutOfProcess",
-    "--disable-setuid-sandbox",
     "--disable-accelerated-video-decode",
     "--disable-accelerated-video-encode",
-    "--disable-gpu-memory-buffer-video-frames",
-    "--disable-gpu-compositing",
-    "--disable-gpu-rasterization",
-    "--disable-gpu-sandbox",
-    "--disable-webgl",
-    "--disable-webgl2",
-    "--enable-unsafe-swiftshader",  # Add this to address the WebGL warning
-    "--disable-features=MediaFoundationVideoCapture,VizDisplayCompositor,UseOzonePlatform,Vulkan,WebRTC,AudioServiceOutOfProcess",
-    "--silent",
+    "--enable-unsafe-swiftshader"
 ]
 
 # Add timeout settings
