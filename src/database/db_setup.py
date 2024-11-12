@@ -31,44 +31,51 @@ def backup_database():
             raise
 
 def init_database():
-    """Initialize the database with required tables"""
+    """Initialize the database with tables"""
     try:
         conn = sqlite3.connect(DATABASE['path'])
         cursor = conn.cursor()
 
-        # Create restaurants table
+        # Create restaurants table with all core fields
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS restaurants (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 restaurant_name TEXT NOT NULL,
                 restaurant_description TEXT,
-                cleaned_address TEXT,
-                city TEXT,
-                state TEXT,
-                zip TEXT,
+                address TEXT,
                 phone TEXT,
                 website TEXT,
                 google_maps_link TEXT,
                 instagram_name TEXT,
                 instagram_url TEXT,
+                cleaned_address TEXT,
+                city TEXT,
+                state TEXT,
+                zip TEXT,
+                star_rating REAL,
+                number_of_reviews INTEGER,
+                restaurant_category TEXT,
+                price_range TEXT,
+                latitude REAL,
+                longitude REAL,
+                accessibility TEXT,
+                service_options TEXT,
+                highlights TEXT,
+                popular_for TEXT,
+                offerings TEXT,
+                dining_options TEXT,
+                amenities TEXT,
+                atmosphere TEXT,
+                planning TEXT,
+                payments TEXT,
+                parking TEXT,
+                doesnt_offer TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
 
-        # Create restaurant_details table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS restaurant_details (
-                restaurant_id INTEGER,
-                detail_key TEXT,
-                detail_value TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
-                PRIMARY KEY (restaurant_id, detail_key)
-            )
-        ''')
-
-        # Create indexes for better query performance
+        # Create indexes
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_restaurant_name ON restaurants(restaurant_name)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_location ON restaurants(city, state, zip)')
 

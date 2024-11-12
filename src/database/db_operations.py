@@ -36,33 +36,61 @@ class RestaurantDB:
     def insert_restaurant_data(self, df: pd.DataFrame):
         """Insert data from DataFrame into database"""
         try:
-            # Split data into core fields and additional details
-            core_fields = RESTAURANT_SCHEMA['core_fields']
-            detail_fields = [col for col in df.columns if col not in core_fields]
+            # Create field mapping between CSV columns and database fields
+            field_mapping = {
+                'restaurant_name': 'Restaurant Name',
+                'restaurant_description': 'Restaurant Description',
+                'address': 'Address',
+                'phone': 'Phone',
+                'website': 'Website',
+                'google_maps_link': 'Google Maps Link',
+                'instagram_name': 'Instagram Name',
+                'instagram_url': 'Instagram URL',
+                'cleaned_address': 'Cleaned Address',
+                'city': 'City',
+                'state': 'State',
+                'zip': 'Zip',
+                'star_rating': 'Star Rating',
+                'number_of_reviews': 'Number of Reviews',
+                'restaurant_category': 'Restaurant Category',
+                'price_range': 'Price Range',
+                'latitude': 'Latitude',
+                'longitude': 'Longitude',
+                'accessibility': 'Accessibility',
+                'service_options': 'Service options',
+                'highlights': 'Highlights',
+                'popular_for': 'Popular for',
+                'offerings': 'Offerings',
+                'dining_options': 'Dining options',
+                'amenities': 'Amenities',
+                'atmosphere': 'Atmosphere',
+                'planning': 'Planning',
+                'payments': 'Payments',
+                'parking': 'Parking',
+                'doesnt_offer': 'Doesnt Offer'
+            }
 
             # Insert core restaurant data
             for _, row in df.iterrows():
-                # Insert into restaurants table
-                core_data = {field: row[field] for field in core_fields if field in row}
-                placeholders = ', '.join(['?' for _ in core_data])
-                columns = ', '.join(core_data.keys())
-                
-                self.cursor.execute(f'''
-                    INSERT INTO restaurants ({columns})
-                    VALUES ({placeholders})
-                ''', list(core_data.values()))
-                
-                restaurant_id = self.cursor.lastrowid
+                # Convert DataFrame column names to database field names
+                core_data = {}
+                for db_field, csv_field in field_mapping.items():
+                    if csv_field in row and pd.notna(row[csv_field]):
+                        core_data[db_field] = row[csv_field]
 
-                # Insert additional details
-                for field in detail_fields:
-                    if pd.notna(row[field]):
-                        self.cursor.execute('''
-                            INSERT INTO restaurant_details (restaurant_id, detail_key, detail_value)
-                            VALUES (?, ?, ?)
-                        ''', (restaurant_id, field, str(row[field])))
+                if core_data:
+                    # Create the SQL query
+                    columns = ', '.join(core_data.keys())
+                    placeholders = ', '.join(['?' for _ in core_data])
+                    
+                    query = f'''
+                        INSERT INTO restaurants ({columns})
+                        VALUES ({placeholders})
+                    '''
+                    
+                    self.cursor.execute(query, list(core_data.values()))
 
-            self.conn.commit()
+                self.conn.commit()
             logger.info(f"Inserted {len(df)} restaurants into database")
         except sqlite3.Error as e:
             logger.error(f"Error inserting data: {e}")
