@@ -12,7 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
-from config.config import EATER_CONFIG, CHROME_OPTIONS, RAW_RESTAURANTS_CSV
+from ..config.config import EATER_CONFIG, CHROME_OPTIONS, RAW_RESTAURANTS_CSV
 from contextlib import contextmanager
 
 # Setup logging
@@ -233,8 +233,8 @@ TESTING vs PRODUCTION Configuration:
 To switch between testing (single article) and production (full scrape), 
 uncomment one version of scrape_eater_archives() and comment out the other.
 """
-
-# CURRENT VERSION (Testing - Single Article)
+"""
+#Testing - Single Article
 def scrape_eater_archives():
     output_csv = RAW_RESTAURANTS_CSV
     os.makedirs(os.path.dirname(output_csv), exist_ok=True)
@@ -267,9 +267,9 @@ def scrape_eater_archives():
     except Exception as e:
         logger.error(f"Error processing test article: {str(e)}")
         raise
-
 """
-To switch back to PRODUCTION version, replace the above function with this:
+
+#To switch back to PRODUCTION version, replace the above function with this:
 
 def scrape_eater_archives():
     output_csv = RAW_RESTAURANTS_CSV
@@ -333,7 +333,7 @@ def scrape_eater_archives():
         except Exception as e:
             logger.error(f"Unexpected error on page {page}: {str(e)}")
             continue
-"""
+
 
 if __name__ == "__main__":
     scrape_eater_archives()

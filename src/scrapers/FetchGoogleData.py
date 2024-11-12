@@ -9,7 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException
 from bs4 import BeautifulSoup
-from config.config import CLEANED_RESTAURANTS_CSV, ENHANCED_RESTAURANTS_CSV, CHROME_OPTIONS, TIMEOUT_CONFIG
+from ..config.config import CLEANED_RESTAURANTS_CSV, ENHANCED_RESTAURANTS_CSV, CHROME_OPTIONS, TIMEOUT_CONFIG
 import logging
 from src.utils.helpers import ensure_directories_exist
 from pathlib import Path
@@ -206,21 +206,25 @@ def process_csv(input_file, output_file):
         'Latitude', 'Longitude', 'Accessibility',
         'Service options', 'Highlights', 'Popular for', 'Offerings',
         'Dining options', 'Amenities', 'Atmosphere', 'Planning',
-        'Payments', 'Parking', 'Doesnt Offer'  # Added Doesnt Offer
+        'Payments', 'Parking', 'Doesnt Offer'
     ]
 
     try:
+        # First, write just the header if file doesn't exist
+        if not Path(output_file).exists():
+            with open(output_file, 'w', newline='', encoding='utf-8') as outfile:
+                writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+                writer.writeheader()
+
+        # Count total rows
         with open(input_file, 'r', encoding='utf-8') as f:
             total_rows = sum(1 for _ in csv.DictReader(f))
 
-        with open(input_file, 'r', encoding='utf-8') as infile, \
-             open(output_file, 'w', newline='', encoding='utf-8') as outfile:
-            
+        # Process each row
+        with open(input_file, 'r', encoding='utf-8') as infile:
             reader = csv.DictReader(infile)
-            writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-            writer.writeheader()
-            
             driver = None
+            
             for i, row in enumerate(reader, 1):
                 try:
                     if driver is None:
@@ -234,7 +238,6 @@ def process_csv(input_file, output_file):
                     
                     logger.info(f"Processing row {i} of {total_rows}: {row.get('Restaurant Name', 'Unknown')}")
                     
-                    # Use existing Google Maps Link or create search URL
                     google_maps_url = row.get('Google Maps Link', '').strip()
                     if not google_maps_url:
                         search_query = f"{row['Restaurant Name']} {row.get('Address', '')} restaurant"
@@ -242,7 +245,11 @@ def process_csv(input_file, output_file):
                     
                     google_data = fetch_google_maps_data(google_maps_url, driver=driver)
                     row.update(google_data)
-                    writer.writerow(row)
+                    
+                    # Write each row immediately in append mode
+                    with open(output_file, 'a', newline='', encoding='utf-8') as outfile:
+                        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+                        writer.writerow(row)
                     
                     # Log the collected data
                     logger.info(f"\nData collected for {row['Restaurant Name']}:")
@@ -262,7 +269,6 @@ def process_csv(input_file, output_file):
                             logger.info(f"{key}: {value}")
                     logger.info("-" * 50 + "\n")
                     
-                    # Random delay between requests
                     time.sleep(random.uniform(2, 4))
                     
                 except Exception as e:
