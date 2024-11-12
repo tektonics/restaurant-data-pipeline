@@ -12,8 +12,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
-from ..config.config import EATER_CONFIG, CHROME_OPTIONS, RAW_RESTAURANTS_CSV
+from ..config.config import EATER_CONFIG, CHROME_OPTIONS, RAW_RESTAURANTS_CSV, CLEANED_RESTAURANTS_CSV
 from contextlib import contextmanager
+import pandas as pd
+from threading import Timer
+from ..data_processing.cleanAddrRestaurants import fill_missing_city, clean_and_split_address
+from ..utils.cleaning_monitor import log_cleaning_progress
 
 # Setup logging
 logging.basicConfig(
@@ -25,6 +29,10 @@ logger = logging.getLogger(__name__)
 # Get user agents from config
 user_agents = EATER_CONFIG['user_agents']
 
+# Add constants for post-processing
+POST_PROCESS_INTERVAL = 300  # Run post-processing every 5 minutes
+last_post_process_time = 0
+
 @contextmanager
 def create_driver():
     """Create and return a configured Chrome WebDriver instance"""
@@ -32,7 +40,8 @@ def create_driver():
     try:
         # Initialize Chrome options
         chrome_options = Options()
-        # chrome_options.add_argument("--headless")  # Comment out headless mode for debugging
+        for option in CHROME_OPTIONS:
+            chrome_options.add_argument(option)
         chrome_options.add_argument(f"user-agent={random.choice(user_agents)}")
         chrome_options.add_argument("--disable-gpu")  # Disable GPU hardware acceleration
         chrome_options.add_argument("--no-sandbox")  # Bypass OS security model
@@ -139,7 +148,7 @@ def scrape_eater_page(url, output_csv):
                             print(f"Error extracting Instagram info: {e}")
                             driver.switch_to.default_content()
                 
-                # Condition to check if name and address are found before appending to data
+                # Condition to check if name and address are found before processing
                 if name != "Name Not Found" and address != "Address Not Found":
                     new_entry = {
                         'Restaurant Name': name,
@@ -154,15 +163,11 @@ def scrape_eater_page(url, output_csv):
                     
                     # Check for duplicate entry
                     if not is_duplicate_entry(output_csv, new_entry):
-                        data.append(new_entry)
-            
-            # Write or append data to the output CSV
-            fieldnames = ['Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 'Website', 'Google Maps Link', 'Instagram Name', 'Instagram URL']
-            with open(output_csv, 'a', newline='', encoding='utf-8') as file:  
-                writer = csv.DictWriter(file, fieldnames=fieldnames)
-                if file.tell() == 0:  # Check if file is empty (first write)
-                    writer.writeheader()
-                writer.writerows(data)
+                        # Write to raw CSV
+                        write_to_raw_csv(new_entry, output_csv)
+                        
+                        # Clean and write to cleaned CSV
+                        clean_and_write_entry(new_entry, CLEANED_RESTAURANTS_CSV)
             
             return  # Success - exit the retry loop
             
@@ -172,6 +177,76 @@ def scrape_eater_page(url, output_csv):
         except Exception as e:
             logger.error(f"Unexpected error scraping {url}: {str(e)}")
             raise
+
+def write_to_raw_csv(entry, output_csv):
+    """Write a single entry to the raw CSV file"""
+    fieldnames = ['Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 
+                 'Website', 'Google Maps Link', 'Instagram Name', 'Instagram URL']
+    
+    with open(output_csv, 'a', newline='', encoding='utf-8') as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        if file.tell() == 0:  # Check if file is empty
+            writer.writeheader()
+        writer.writerow(entry)
+
+def post_process_cleaned_data():
+    """Post-process the cleaned CSV to fill missing cities"""
+    try:
+        # Read current cleaned CSV
+        df = pd.read_csv(CLEANED_RESTAURANTS_CSV)
+        
+        # Fill missing cities
+        df = fill_missing_city(df)
+        
+        # Write back to cleaned CSV
+        df.to_csv(CLEANED_RESTAURANTS_CSV, index=False)
+        logger.info("Post-processing completed successfully")
+        
+    except Exception as e:
+        logger.error(f"Error during post-processing: {e}")
+
+def should_run_post_processing():
+    """Check if enough time has passed to run post-processing"""
+    global last_post_process_time
+    current_time = time.time()
+    
+    if current_time - last_post_process_time >= POST_PROCESS_INTERVAL:
+        last_post_process_time = current_time
+        return True
+    return False
+
+def clean_and_write_entry(entry, cleaned_csv):
+    """Clean a single entry and write to cleaned CSV"""
+    # Clean the address
+    cleaned_components = clean_and_split_address(entry['Address'])
+    
+    # Create cleaned entry
+    cleaned_entry = {
+        **entry,  # Original fields
+        'Cleaned Address': cleaned_components['Address'],
+        'City': cleaned_components['City'],
+        'State': cleaned_components['State'],
+        'Zip': cleaned_components['Zip']
+    }
+    
+    # Skip entries without ZIP code
+    if not cleaned_entry['Zip']:
+        return
+    
+    # Write to cleaned CSV
+    fieldnames = ['Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 
+                 'Website', 'Google Maps Link', 'Instagram Name', 'Instagram URL',
+                 'Cleaned Address', 'City', 'State', 'Zip']
+    
+    with open(cleaned_csv, 'a', newline='', encoding='utf-8') as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        if file.tell() == 0:  # Check if file is empty
+            writer.writeheader()
+        writer.writerow(cleaned_entry)
+    
+    # Check if it's time to run post-processing
+    if should_run_post_processing():
+        post_process_cleaned_data()
 
 def is_duplicate_entry(csv_file, new_entry):
     """Check if a restaurant entry already exists in the CSV file"""
@@ -195,85 +270,13 @@ def is_duplicate_entry(csv_file, new_entry):
     return False
 
 def scrape_eater_archives():
-    output_csv = RAW_RESTAURANTS_CSV
-    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
-    base_url = EATER_CONFIG['base_url']
+    """Main scraping function"""
+    global last_post_process_time
+    last_post_process_time = time.time()  # Initialize the timer
     
-    try:
-        # Only process the first page
-        url = base_url
-        logger.info("Processing first archive page only")
-
-        response = requests.get(
-            url, 
-            headers={"User-Agent": random.choice(user_agents)},
-            timeout=30
-        )
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Get only the first article link
-        entry = soup.find('div', class_='c-compact-river__entry')
-        if entry and entry.find('a'):
-            article_url = entry.find('a')['href']
-            if not article_url.startswith('http'):
-                article_url = 'https://www.eater.com' + article_url
-                
-            logger.info("Processing single test article")
-            scrape_eater_page(article_url, output_csv)
-            
-    except Exception as e:
-        logger.error(f"Error processing test article: {str(e)}")
-        raise
-
-"""
-TESTING vs PRODUCTION Configuration:
-
-To switch between testing (single article) and production (full scrape), 
-uncomment one version of scrape_eater_archives() and comment out the other.
-"""
-"""
-#Testing - Single Article
-def scrape_eater_archives():
     output_csv = RAW_RESTAURANTS_CSV
     os.makedirs(os.path.dirname(output_csv), exist_ok=True)
-    base_url = EATER_CONFIG['base_url']
-    
-    try:
-        # Only process the first page
-        url = base_url
-        logger.info("Processing first archive page only")
-
-        response = requests.get(
-            url, 
-            headers={"User-Agent": random.choice(user_agents)},
-            timeout=30
-        )
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Get only the first article link
-        entry = soup.find('div', class_='c-compact-river__entry')
-        if entry and entry.find('a'):
-            article_url = entry.find('a')['href']
-            if not article_url.startswith('http'):
-                article_url = 'https://www.eater.com' + article_url
-                
-            logger.info("Processing single test article")
-            scrape_eater_page(article_url, output_csv)
-            
-    except Exception as e:
-        logger.error(f"Error processing test article: {str(e)}")
-        raise
-"""
-
-#To switch back to PRODUCTION version, replace the above function with this:
-
-def scrape_eater_archives():
-    output_csv = RAW_RESTAURANTS_CSV
-    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+    os.makedirs(os.path.dirname(CLEANED_RESTAURANTS_CSV), exist_ok=True)
     base_url = EATER_CONFIG['base_url']
     pages_to_scrape = EATER_CONFIG['pages_to_scrape']
     
@@ -334,6 +337,8 @@ def scrape_eater_archives():
             logger.error(f"Unexpected error on page {page}: {str(e)}")
             continue
 
+    # Run final post-processing after all scraping is complete
+    post_process_cleaned_data()
 
 if __name__ == "__main__":
     scrape_eater_archives()
