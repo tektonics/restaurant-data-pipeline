@@ -24,6 +24,7 @@ setup(
         'beautifulsoup4>=4.9.3',
         'selenium>=4.0.0',
         'python-dotenv>=0.19.0',
+        'webdriver-manager==4.0.0',
     ],
     python_requires='>=3.8',
 )
