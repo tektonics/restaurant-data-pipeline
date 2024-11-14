@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 def load_csv_to_database():
     try:
         # Define paths
-        csv_path = Path("data/processed/cleaned_restaurants_enhanced.csv")
+        csv_path = Path("data/processed/all_enhanced.csv")
         
         if not csv_path.exists():
             raise FileNotFoundError(f"CSV file not found at {csv_path}")

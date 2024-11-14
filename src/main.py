@@ -10,6 +10,9 @@ import time
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+from concurrent.futures import ThreadPoolExecutor
+from itertools import islice
+from src.scrapers.FetchGoogleData import fetch_google_maps_data
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,6 +27,32 @@ def run_with_timeout(timeout_duration):
     timer = threading.Timer(timeout_duration, timeout_handler)
     timer.start()
     return timer
+
+def process_batch(batch_df):
+    driver = None
+    try:
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service)
+        for _, row in batch_df.iterrows():
+            try:
+                google_data = fetch_google_maps_data(row['Google Maps Link'], driver)
+                for key, value in google_data.items():
+                    row[key] = value
+            except Exception as e:
+                logger.error(f"Error processing row: {e}")
+    finally:
+        if driver:
+            driver.quit()
+
+def process_with_parallel(df):
+    # Split dataframe into batches
+    batch_size = 100
+    num_workers = 3  # Adjust based on your CPU and memory
+    
+    batches = [df[i:i + batch_size] for i in range(0, len(df), batch_size)]
+    
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        executor.map(process_batch, batches)
 
 def main():
     try:
@@ -62,8 +91,9 @@ def main():
         df.to_csv(CLEANED_RESTAURANTS_CSV, index=False)
 
         # Step 3: Enhance with Google Maps data
-        logger.info("Initializing Google Maps data fetcher...")
-        process_csv(CLEANED_RESTAURANTS_CSV, ENHANCED_RESTAURANTS_CSV)
+        logger.info("Enhancing with Google Maps data...")
+        df = pd.read_csv(CLEANED_RESTAURANTS_CSV)
+        process_with_parallel(df)
 
         # Step 4: Initialize and populate database
         logger.info("Initializing database...")

@@ -12,55 +12,54 @@ This project automates the collection of restaurant data, processes and standard
 - Web scraping from Eater.com restaurant listings
 - Google Maps data enhancement including:
   - Star ratings and review counts
-  - Restaurant categories
+  - Restaurant categories and price ranges
   - Geographic coordinates
-  - Service options and amenities
-- Instagram profile information extraction
+  - Service options and dining features
+  - Accessibility information
+  - Amenities and atmosphere details
+  - Payment methods and parking options
 - Intelligent rate limiting and retry mechanisms
 - Rotating user agents for request management
+- Chrome WebDriver automation with headless mode
 
 ### Data Processing
 - Address standardization and parsing
-- City and state validation
-- ZIP code verification
-- Duplicate detection and removal
-- Data validation and enhancement
+- City and state validation with abbreviation mapping
+- ZIP code verification and normalization
+- Multi-level duplicate detection
+- Progressive data enhancement
+- Batch processing with parallel execution
 
 ### Database Integration
 - SQLite database with optimized schema
-- Automated backup system
-- Efficient querying capabilities
-- Structured data storage
+- Automated backup system with timestamped copies
+- Transaction management and rollback support
+- Efficient indexing for common queries
+- Structured data validation
 
 ## Error Handling
-
-- Automatic retries for failed requests
-- Comprehensive logging system
-- Timeout protection for long-running operations
-- Database transaction management
-
-## Project Status
-
-This project is currently under active development. License and contribution guidelines will be added in future updates.
+- Timeout protection (30-minute global timeout)
+- Automatic retries for failed requests with exponential backoff
+- Comprehensive logging system with separate database logs
+- WebDriver recovery and session management
+- Transaction rollback on failures
 
 ## Project Structure
 
 restaurant_data_project/
-├── config/             # Configuration files
-│   ├── config.py      # General configuration
-│   └── database_config.py # Database settings
-├── data/              # Data storage
-│   ├── raw/           # Raw scraped data
-│   ├── processed/     # Cleaned and processed data
-│   └── database/      # SQLite database files
-├── src/               # Source code
+├── src/
+│   ├── config/        # Configuration files
 │   ├── scrapers/      # Web scraping modules
 │   ├── data_processing/ # Data cleaning and processing
 │   ├── database/      # Database operations
 │   └── utils/         # Utility functions
-├── tests/             # Test files
-├── notebooks/         # Jupyter notebooks
-└── logs/              # Log files
+├── data/
+│   ├── raw/          # Raw scraped data
+│   ├── processed/    # Cleaned and processed data
+│   └── database/     # SQLite database files
+├── scripts/          # Utility scripts
+├── tests/           # Test files
+└── logs/            # Log files
 
 ## Installation
 
@@ -79,22 +78,24 @@ restaurant_data_project/
 
 The project uses several configuration files:
 
-### Main Configuration (config.py)
-- Scraping parameters
-- User agents and request settings
+### Main Configuration (src/config/config.py)
+- Scraping parameters and delays
+- User agents rotation
 - Chrome WebDriver options
 - Timeout configurations
-- Data processing rules
+- State abbreviation mappings
+- Rate limiting settings
 
-### Database Configuration (database_config.py)
+### Database Configuration (src/config/database_config.py)
 - Database file paths
-- Backup settings
+- Backup directory settings
 - Schema definitions
 - Core field specifications
+- Logging configurations
 
 ## Usage
 
-1. Run the main script to start data collection:
+1. Run the main data collection pipeline:
    ```bash
    python -m src.main
    ```
@@ -102,6 +103,16 @@ The project uses several configuration files:
 2. Check database status:
    ```bash
    python scripts/check_db.py
+   ```
+
+3. Process missing restaurants:
+   ```bash
+   python scripts/dupcheck.py
+   ```
+
+4. Enhance existing data:
+   ```bash
+   python scripts/enhance_send2db.py
    ```
 
 ## Dependencies
@@ -112,6 +123,7 @@ The project uses several configuration files:
 - beautifulsoup4 >= 4.9.3
 - selenium >= 4.0.0
 - python-dotenv >= 0.19.0
+- webdriver-manager == 4.0.0
 
 ## Development
 
@@ -119,5 +131,9 @@ The project uses several development tools:
 - pre-commit hooks for code quality
 - Black for code formatting
 - Flake8 for linting
+- Comprehensive .gitignore configuration
+- Structured logging throughout
 
-Install development dependencies:
+## Project Status
+
+This project is currently under active development. The core functionality is implemented and working, with ongoing improvements to data collection reliability and processing efficiency.

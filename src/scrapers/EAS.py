@@ -105,8 +105,6 @@ def scrape_eater_page(url, output_csv):
                 phone = "Phone Not Found"
                 website = "Website Not Found"
                 google_maps_link = "Google Maps Link Not Found"
-                instagram_name = "Instagram Name Not Found"
-                instagram_url = "Instagram URL Not Found"
 
                 if info_section:
                     # Extract Google Maps link and address
@@ -124,30 +122,6 @@ def scrape_eater_page(url, output_csv):
                         elif '#icon-world' in icon:
                             website = item.find('a')['href']
 
-                # Extract Instagram information
-                video_section = entry.find('div', class_='c-mapstack__video')
-                if video_section:
-                    iframe = video_section.find('iframe', id=lambda x: x and x.startswith('instagram-embed-'))
-                    if iframe:
-                        iframe_id = iframe['id']
-                        try:
-                            # Switch to the iframe
-                            driver.switch_to.frame(iframe_id)
-                            
-                            # Wait for the ViewProfileButton to be present
-                            wait = WebDriverWait(driver, 10)
-                            view_profile_button = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'ViewProfileButton')))
-                            
-                            # Extract Instagram information
-                            instagram_url = view_profile_button.get_attribute('href')
-                            instagram_name = instagram_url.split('instagram.com/')[-1].split('?')[0]
-                            
-                            # Switch back to the main content
-                            driver.switch_to.default_content()
-                        except Exception as e:
-                            print(f"Error extracting Instagram info: {e}")
-                            driver.switch_to.default_content()
-                
                 # Condition to check if name and address are found before processing
                 if name != "Name Not Found" and address != "Address Not Found":
                     new_entry = {
@@ -156,9 +130,7 @@ def scrape_eater_page(url, output_csv):
                         'Address': address,
                         'Phone': phone,
                         'Website': website,
-                        'Google Maps Link': google_maps_link,
-                        'Instagram Name': instagram_name,
-                        'Instagram URL': instagram_url
+                        'Google Maps Link': google_maps_link
                     }
                     
                     # Check for duplicate entry
@@ -181,7 +153,7 @@ def scrape_eater_page(url, output_csv):
 def write_to_raw_csv(entry, output_csv):
     """Write a single entry to the raw CSV file"""
     fieldnames = ['Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 
-                 'Website', 'Google Maps Link', 'Instagram Name', 'Instagram URL']
+                 'Website', 'Google Maps Link']
     
     with open(output_csv, 'a', newline='', encoding='utf-8') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -235,8 +207,7 @@ def clean_and_write_entry(entry, cleaned_csv):
     
     # Write to cleaned CSV
     fieldnames = ['Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 
-                 'Website', 'Google Maps Link', 'Instagram Name', 'Instagram URL',
-                 'Cleaned Address', 'City', 'State', 'Zip']
+                 'Website', 'Google Maps Link', 'Cleaned Address', 'City', 'State', 'Zip']
     
     with open(cleaned_csv, 'a', newline='', encoding='utf-8') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)

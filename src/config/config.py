@@ -83,21 +83,24 @@ CHROME_OPTIONS = [
     "--disable-dev-shm-usage",
     "--ignore-certificate-errors-spki-list",
     "--ignore-ssl-errors",
-    "--log-level=2",
+    "--log-level=3",
     "--disable-extensions",
     "--disable-notifications",
     "--disable-infobars",
     "--window-size=1920,1080",
     "--disable-accelerated-video-decode",
     "--disable-accelerated-video-encode",
-    "--enable-unsafe-swiftshader"
+    "--blink-settings=imagesEnabled=false",  # Disable images
+    "--disable-javascript",  # Disable JS where possible
+    "--disk-cache-size=1",  # Minimize disk cache
+    "--enable-unsafe-swiftshader"  # Add this line to handle WebGL fallback
 ]
 
-# Add timeout settings
+# Optimized timeout settings
 TIMEOUT_CONFIG = {
-    'page_load': 30,  # seconds
-    'script': 30,
-    'element_wait': 20
+    'page_load': 15,  # Reduced from 30
+    'script': 15,     # Reduced from 30
+    'element_wait': 10 # Reduced from 20
 }
 
 # Default values for missing data
@@ -112,11 +115,11 @@ DEFAULT_VALUES = {
     'instagram_url': "Instagram URL Not Found"
 }
 
-# Rate limiting settings
+# Optimized rate limiting settings
 RATE_LIMITS = {
-    'min_delay': 2,
-    'max_delay': 10,
-    'error_delay': 30  # Delay after encountering an error
+    'min_delay': 1,    # Reduced from 2
+    'max_delay': 5,    # Reduced from 10
+    'error_delay': 15  # Reduced from 30
 }
 
 # Error handling settings

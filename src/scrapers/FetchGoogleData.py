@@ -108,10 +108,10 @@ def fetch_google_maps_data(url, driver=None):
         # Only click About tab if we haven't found all information yet
         if 'Not available' in data.values():
             try:
-                about_tab = safe_find_element(driver, By.CSS_SELECTOR, 'button[aria-label*="About"]', timeout=3)
+                about_tab = safe_find_element(driver, By.CSS_SELECTOR, 'button[aria-label*="About"]', timeout=2)
                 if about_tab:
                     about_tab.click()
-                    time.sleep(0.5)
+                    time.sleep(0.3)
             except:
                 pass
 
@@ -201,7 +201,7 @@ def process_csv(input_file, output_file):
     """Process CSV file and fetch Google Maps data"""
     fieldnames = [
         'Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 'Website',
-        'Google Maps Link', 'Instagram Name', 'Instagram URL', 'Cleaned Address',
+        'Google Maps Link', 'Cleaned Address',
         'City', 'State', 'Zip', 'Star Rating', 'Number of Reviews',
         'Restaurant Category', 'Price Range', 
         'Latitude', 'Longitude', 'Accessibility',
@@ -236,13 +236,20 @@ def process_csv(input_file, output_file):
         chrome_options = Options()
         for option in CHROME_OPTIONS:
             chrome_options.add_argument(option)
-        # Add these performance-focused options
-        chrome_options.add_argument('--blink-settings=imagesEnabled=false')  # Disable images
-        chrome_options.add_argument('--disable-javascript')  # Disable JS where possible
-        chrome_options.add_argument('--disk-cache-size=1')  # Minimize disk cache
         driver = webdriver.Chrome(service=service, options=chrome_options)
         driver.implicitly_wait(5)  # Reduced from TIMEOUT_CONFIG['element_wait']
         driver.set_page_load_timeout(15)  # Reduced from TIMEOUT_CONFIG['page_load']
+
+        # Add performance optimization settings
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--blink-settings=imagesEnabled=false')  # Disable images
+        chrome_options.add_argument('--disable-extensions')
+        
+        # Reduce initial page load wait
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        )
 
         # First, write just the header if file doesn't exist
         if not Path(output_file).exists():
@@ -292,7 +299,7 @@ def process_csv(input_file, output_file):
                     logger.info(f"Successfully processed: {row['Restaurant Name']}")
                     
                     # Reduce wait between requests
-                    time.sleep(random.uniform(1, 2))
+                    time.sleep(random.uniform(0.5, 1))
                     
                 except Exception as e:
                     logger.error(f"Error processing row {i}: {str(e)}")

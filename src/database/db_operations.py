@@ -44,8 +44,6 @@ class RestaurantDB:
                 'phone': 'Phone',
                 'website': 'Website',
                 'google_maps_link': 'Google Maps Link',
-                'instagram_name': 'Instagram Name',
-                'instagram_url': 'Instagram URL',
                 'cleaned_address': 'Cleaned Address',
                 'city': 'City',
                 'state': 'State',
