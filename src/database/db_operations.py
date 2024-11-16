@@ -5,7 +5,6 @@ import pandas as pd
 import logging
 from typing import List, Dict, Any
 
-# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -36,7 +35,6 @@ class RestaurantDB:
     def insert_restaurant_data(self, df: pd.DataFrame):
         """Insert data from DataFrame into database"""
         try:
-            # Create field mapping between CSV columns and database fields
             field_mapping = {
                 'restaurant_name': 'Restaurant Name',
                 'restaurant_description': 'Restaurant Description',
@@ -68,16 +66,13 @@ class RestaurantDB:
                 'doesnt_offer': 'Doesnt Offer'
             }
 
-            # Insert core restaurant data
             for _, row in df.iterrows():
-                # Convert DataFrame column names to database field names
                 core_data = {}
                 for db_field, csv_field in field_mapping.items():
                     if csv_field in row and pd.notna(row[csv_field]):
                         core_data[db_field] = row[csv_field]
 
                 if core_data:
-                    # Create the SQL query
                     columns = ', '.join(core_data.keys())
                     placeholders = ', '.join(['?' for _ in core_data])
                     
@@ -106,11 +101,9 @@ class RestaurantDB:
             if not restaurant:
                 return None
 
-            # Convert to dictionary
             columns = [desc[0] for desc in self.cursor.description]
             result = dict(zip(columns, restaurant))
 
-            # Get additional details
             self.cursor.execute('''
                 SELECT detail_key, detail_value 
                 FROM restaurant_details 
@@ -129,14 +122,12 @@ class RestaurantDB:
     def update_restaurant(self, restaurant_id: int, data: Dict[str, Any]):
         """Update restaurant data"""
         try:
-            # Update core fields
             core_fields = {k: v for k, v in data.items() if k in RESTAURANT_SCHEMA['core_fields']}
             if core_fields:
                 set_clause = ', '.join([f"{k} = ?" for k in core_fields.keys()])
                 query = f"UPDATE restaurants SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
                 self.cursor.execute(query, list(core_fields.values()) + [restaurant_id])
 
-            # Update or insert additional details
             detail_fields = {k: v for k, v in data.items() if k not in core_fields}
             for key, value in detail_fields.items():
                 self.cursor.execute('''
@@ -152,12 +143,10 @@ class RestaurantDB:
             raise
 
 if __name__ == "__main__":
-    # Example usage
     db = RestaurantDB()
     try:
         db.connect()
         
-        # Load and insert data
         df = pd.read_csv(Path(__file__).parent.parent.parent / "data/processed/cleaned_restaurants_enhanced.csv")
         db.insert_restaurant_data(df)
         

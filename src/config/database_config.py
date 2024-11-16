@@ -3,17 +3,14 @@
 import os
 from pathlib import Path
 
-# Base project directory
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 
-# Database settings
 DATABASE = {
     'path': PROJECT_ROOT / 'data' / 'database' / 'restaurants.db',
     'backup_path': PROJECT_ROOT / 'data' / 'database' / 'backups',
     'log_path': PROJECT_ROOT / 'logs' / 'database.log'
 }
 
-# Table schemas
 RESTAURANT_SCHEMA = {
     'core_fields': [
         'restaurant_name',
@@ -30,6 +27,5 @@ RESTAURANT_SCHEMA = {
     ]
 }
 
-# Create necessary directories
 for path in [DATABASE['path'].parent, DATABASE['backup_path'], DATABASE['log_path'].parent]:
     path.mkdir(parents=True, exist_ok=True)

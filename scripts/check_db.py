@@ -18,12 +18,10 @@ def check_database():
     try:
         db.connect()
         
-        # Get total count
         db.cursor.execute('SELECT COUNT(*) FROM restaurants')
         count = db.cursor.fetchone()[0]
         print(f"\nTotal Records: {count}")
         
-        # Get sample record with all fields
         if count > 0:
             db.cursor.execute('SELECT * FROM restaurants LIMIT 1')
             columns = [description[0] for description in db.cursor.description]

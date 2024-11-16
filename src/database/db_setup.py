@@ -6,7 +6,6 @@ from pathlib import Path
 from datetime import datetime
 from ..config.database_config import DATABASE, RESTAURANT_SCHEMA
 
-# Setup logging
 logging.basicConfig(
     filename=DATABASE['log_path'],
     level=logging.INFO,
@@ -36,7 +35,6 @@ def init_database():
         conn = sqlite3.connect(DATABASE['path'])
         cursor = conn.cursor()
 
-        # Create restaurants table with all core fields
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS restaurants (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,7 +73,6 @@ def init_database():
             )
         ''')
 
-        # Create indexes
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_restaurant_name ON restaurants(restaurant_name)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_location ON restaurants(city, state, zip)')
 
@@ -90,11 +87,9 @@ def init_database():
 
 if __name__ == "__main__":
     try:
-        # Backup existing database if it exists
         if DATABASE['path'].exists():
             backup_database()
         
-        # Initialize database
         init_database()
         
     except Exception as e:

@@ -17,7 +17,6 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from urllib.parse import quote
 
-# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -25,13 +24,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def clean_text(text):
-    """Clean and normalize text"""
     if not text:
         return ''
     return ' '.join(text.split())
 
 def safe_find_element(driver, by, selector, timeout=10):
-    """Safely find an element with explicit wait and error handling"""
     try:
         element = WebDriverWait(driver, timeout).until(
             EC.presence_of_element_located((by, selector))
@@ -41,7 +38,6 @@ def safe_find_element(driver, by, selector, timeout=10):
         return None
 
 def get_element_text(driver, selectors, default='Not available'):
-    """Try multiple selectors to get element text"""
     for by, selector in selectors:
         element = safe_find_element(driver, by, selector)
         if element:
@@ -52,7 +48,6 @@ def get_element_text(driver, selectors, default='Not available'):
     return default
 
 def fetch_google_maps_data(url, driver=None):
-    """Fetch data from Google Maps using current selectors"""
     data = {
         'Star Rating': 'Not available',
         'Number of Reviews': 'Not available',
@@ -78,7 +73,6 @@ def fetch_google_maps_data(url, driver=None):
         driver.get(url)
         time.sleep(0.5)
 
-        # Basic information
         try:
             elements = WebDriverWait(driver, 5).until(
                 EC.presence_of_all_elements_located((
@@ -105,7 +99,6 @@ def fetch_google_maps_data(url, driver=None):
         except Exception as e:
             logger.error(f"Error extracting basic info: {str(e)}")
 
-        # Only click About tab if we haven't found all information yet
         if 'Not available' in data.values():
             try:
                 about_tab = safe_find_element(driver, By.CSS_SELECTOR, 'button[aria-label*="About"]', timeout=2)
@@ -115,7 +108,6 @@ def fetch_google_maps_data(url, driver=None):
             except:
                 pass
 
-        # Extract information sections with shorter timeout
         try:
             info_container = WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'div.m6QErb[role="region"]'))
@@ -151,7 +143,6 @@ def fetch_google_maps_data(url, driver=None):
         except Exception as e:
             logger.error(f"Error extracting information sections: {str(e)}")
 
-        # Extract coordinates from URL
         if coords := re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', driver.current_url):
             data['Latitude'], data['Longitude'] = coords.groups()
 
@@ -210,12 +201,10 @@ def process_csv(input_file, output_file):
         'Payments', 'Parking', 'Doesnt Offer'
     ]
 
-    # Verify input file exists and has content
     if not Path(input_file).exists():
         logger.error(f"Input file does not exist: {input_file}")
         return
         
-    # Check if file has content
     with open(input_file, 'r', encoding='utf-8') as f:
         first_line = f.readline().strip()
         if not first_line:
@@ -231,7 +220,6 @@ def process_csv(input_file, output_file):
             return
 
     try:
-        # Initialize driver once before the loop
         service = Service(ChromeDriverManager().install())
         chrome_options = Options()
         for option in CHROME_OPTIONS:
@@ -240,28 +228,23 @@ def process_csv(input_file, output_file):
         driver.implicitly_wait(5)  # Reduced from TIMEOUT_CONFIG['element_wait']
         driver.set_page_load_timeout(15)  # Reduced from TIMEOUT_CONFIG['page_load']
 
-        # Add performance optimization settings
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--blink-settings=imagesEnabled=false')  # Disable images
         chrome_options.add_argument('--disable-extensions')
         
-        # Reduce initial page load wait
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
 
-        # First, write just the header if file doesn't exist
         if not Path(output_file).exists():
             with open(output_file, 'w', newline='', encoding='utf-8') as outfile:
                 writer = csv.DictWriter(outfile, fieldnames=fieldnames)
                 writer.writeheader()
 
-        # Count total rows
         with open(input_file, 'r', encoding='utf-8') as f:
             total_rows = sum(1 for _ in csv.DictReader(f))
 
-        # Process each row
         with open(input_file, 'r', encoding='utf-8') as infile:
             reader = csv.DictReader(infile)
             
@@ -269,10 +252,8 @@ def process_csv(input_file, output_file):
                 try:
                     logger.info(f"Processing row {i} of {total_rows}: {row.get('Restaurant Name', 'Unknown')}")
                     
-                    # Fix the Google Maps URL handling
                     google_maps_url = row.get('Google Maps Link')
                     if not google_maps_url or google_maps_url.strip() == '':
-                        # Create search query with restaurant name and address
                         search_components = []
                         if row.get('Restaurant Name'):
                             search_components.append(row['Restaurant Name'])
@@ -290,26 +271,22 @@ def process_csv(input_file, output_file):
                     google_data = fetch_google_maps_data(google_maps_url, driver=driver)
                     row.update(google_data)
                     
-                    # Write each row immediately in append mode
                     with open(output_file, 'a', newline='', encoding='utf-8') as outfile:
                         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
                         writer.writerow(row)
                     
-                    # Log success
                     logger.info(f"Successfully processed: {row['Restaurant Name']}")
                     
-                    # Reduce wait between requests
                     time.sleep(random.uniform(0.5, 1))
                     
                 except Exception as e:
                     logger.error(f"Error processing row {i}: {str(e)}")
-                    logger.error(f"Row data: {row}")  # Add this for debugging
+                    logger.error(f"Row data: {row}") 
                     try:
                         driver.get('about:blank')
                     except:
                         if driver:
                             driver.quit()
-                            # Reinitialize driver if it fails
                             driver = webdriver.Chrome(service=service, options=chrome_options)
                             driver.implicitly_wait(5)
                             driver.set_page_load_timeout(15)
@@ -322,7 +299,6 @@ def process_csv(input_file, output_file):
             driver.quit()
 
 def process_google_data(input_file=CLEANED_RESTAURANTS_CSV, output_file=ENHANCED_RESTAURANTS_CSV):
-    """Main function to process Google Maps data"""
     process_csv(input_file, output_file)
 
 if __name__ == "__main__":

@@ -2,27 +2,21 @@ import os
 from pathlib import Path
 import logging
 
-# Get project root directory
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 
-# Directory paths using Path for cross-platform compatibility
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 
-# File paths
-# File paths
 RAW_RESTAURANTS_CSV = RAW_DATA_DIR / "raw_restaurants.csv"
 CLEANED_RESTAURANTS_CSV = RAW_DATA_DIR / "cleaned_restaurants.csv"
 ENHANCED_RESTAURANTS_CSV = PROCESSED_DATA_DIR / "cleaned_restaurants_enhanced.csv"
 
-# Required fields (used for validation)
 REQUIRED_RESTAURANT_FIELDS = [
     'Restaurant Name',
     'Address',
 ]
 
-# Expected fields (for documentation purposes)
 EXPECTED_RESTAURANT_FIELDS = [
     'Restaurant Name',
     'Restaurant Description',
@@ -54,10 +48,9 @@ EXPECTED_GOOGLE_FIELDS = [
     'Parking',
     'Pets',
     'Children',
-    'From the business'  # Add this field
+    'From the business'  
 ]
 
-# Scraping configuration
 EATER_CONFIG = {
     'base_url': "https://www.eater.com/maps/archives",
     'pages_to_scrape': 1,
@@ -69,13 +62,12 @@ EATER_CONFIG = {
         "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:46.0) Gecko/20100101 Firefox/46.0"
     ],
     'delay': {
-        'page_load': (5, 10),  # (min, max) seconds
+        'page_load': (5, 10), 
         'between_articles': (5, 10),
         'between_pages': (2, 5)
     }
 }
 
-# Selenium/Chrome configuration
 CHROME_OPTIONS = [
     "--headless=new",
     "--disable-gpu",
@@ -90,20 +82,18 @@ CHROME_OPTIONS = [
     "--window-size=1920,1080",
     "--disable-accelerated-video-decode",
     "--disable-accelerated-video-encode",
-    "--blink-settings=imagesEnabled=false",  # Disable images
-    "--disable-javascript",  # Disable JS where possible
-    "--disk-cache-size=1",  # Minimize disk cache
-    "--enable-unsafe-swiftshader"  # Add this line to handle WebGL fallback
+    "--blink-settings=imagesEnabled=false",  
+    "--disable-javascript",  
+    "--disk-cache-size=1",  
+    "--enable-unsafe-swiftshader"  
 ]
 
-# Optimized timeout settings
 TIMEOUT_CONFIG = {
-    'page_load': 15,  # Reduced from 30
-    'script': 15,     # Reduced from 30
-    'element_wait': 10 # Reduced from 20
+    'page_load': 15,  
+    'script': 15,     
+    'element_wait': 10 
 }
 
-# Default values for missing data
 DEFAULT_VALUES = {
     'name': "Name Not Found",
     'description': "Description Not Found",
@@ -115,18 +105,15 @@ DEFAULT_VALUES = {
     'instagram_url': "Instagram URL Not Found"
 }
 
-# Optimized rate limiting settings
 RATE_LIMITS = {
-    'min_delay': 1,    # Reduced from 2
-    'max_delay': 5,    # Reduced from 10
-    'error_delay': 15  # Reduced from 30
+    'min_delay': 1,    
+    'max_delay': 5,    
+    'error_delay': 15  
 }
 
-# Error handling settings
 MAX_RETRIES = 3
-RETRY_DELAY = 5  # seconds
+RETRY_DELAY = 5   
 
-# State name to abbreviation mapping
 state_abbreviations = {
     'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
     'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
@@ -143,7 +130,6 @@ state_abbreviations = {
     'Wisconsin': 'WI', 'Wyoming': 'WY', 'District of Columbia': 'DC'
 }
 
-# Add these configurations
 WEBDRIVER_CONFIG = {
     'driver_path': None,  # Will use the system PATH
     'implicit_wait': 10,
@@ -151,5 +137,4 @@ WEBDRIVER_CONFIG = {
     'options': CHROME_OPTIONS
 }
 
-# Also add this logging configuration
 logging.getLogger('selenium').setLevel(logging.ERROR)

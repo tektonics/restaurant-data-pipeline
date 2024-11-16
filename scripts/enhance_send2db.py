@@ -32,7 +32,6 @@ def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
             try:
                 logger.info(f"Chunk {chunk_id}: Processing {idx - chunk_df.index[0] + 1}/{total_in_chunk}")
                 
-                # Generate Google Maps URL if missing
                 google_maps_url = row.get('Google Maps Link')
                 if not google_maps_url or google_maps_url == 'Google Maps Link Not Found':
                     search_query = f"{row['Restaurant Name']} {row['Address']} {row['City']} {row['State']}"
@@ -41,7 +40,6 @@ def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
                 google_data = fetch_google_maps_data(google_maps_url, driver)
                 processed_row = {**row.to_dict(), **google_data}
                 
-                # Write row immediately with file locking
                 with open(output_file, 'a', newline='', encoding='utf-8') as f:
                     writer = csv.DictWriter(f, fieldnames=fieldnames)
                     writer.writerow(processed_row)
@@ -50,7 +48,6 @@ def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
                 
             except Exception as e:
                 logger.error(f"Error processing row {idx} in chunk {chunk_id}: {str(e)}")
-                # Write original row on error
                 with open(output_file, 'a', newline='', encoding='utf-8') as f:
                     writer = csv.DictWriter(f, fieldnames=fieldnames)
                     writer.writerow(row.to_dict())
@@ -84,7 +81,6 @@ def write_row_to_csv(row_data, output_file, fieldnames):
 
 def main():
     try:
-        # Reference the fieldnames from FetchGoogleData.py
         fieldnames = [
             'Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 'Website',
             'Google Maps Link', 'Cleaned Address',
@@ -99,7 +95,6 @@ def main():
         enhanced_csv = Path("data/processed/cleaned_restaurants_enhanced.csv")
         enhanced_csv.parent.mkdir(parents=True, exist_ok=True)
         
-        # Create output file with headers if it doesn't exist
         if not enhanced_csv.exists():
             with open(enhanced_csv, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -121,11 +116,10 @@ def main():
             ]
             
             for future in futures:
-                future.result()  # Wait for completion and propagate exceptions
+                future.result()  
         
         logger.info("All chunks processed. Loading data into database...")
         
-        # Load into database
         db = RestaurantDB()
         try:
             db.connect()
