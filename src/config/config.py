@@ -54,6 +54,7 @@ EXPECTED_GOOGLE_FIELDS = [
 EATER_CONFIG = {
     'base_url': "https://www.eater.com/maps/archives",
     'pages_to_scrape': 1,
+    'articles_per_page': 1,
     'user_agents': [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
         "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36",

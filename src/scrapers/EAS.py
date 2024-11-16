@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 user_agents = EATER_CONFIG['user_agents']
 
-POST_PROCESS_INTERVAL = 300  # Run post-processing every 5 minutes
+POST_PROCESS_INTERVAL = 300
 last_post_process_time = 0
 
 @contextmanager
@@ -39,12 +39,12 @@ def create_driver():
         for option in CHROME_OPTIONS:
             chrome_options.add_argument(option)
         chrome_options.add_argument(f"user-agent={random.choice(user_agents)}")
-        chrome_options.add_argument("--disable-gpu")  # Disable GPU hardware acceleration
-        chrome_options.add_argument("--no-sandbox")  # Bypass OS security model
-        chrome_options.add_argument("--disable-dev-shm-usage")  # Overcome limited resource problems
+        chrome_options.add_argument("--disable-gpu")  
+        chrome_options.add_argument("--no-sandbox")  
+        chrome_options.add_argument("--disable-dev-shm-usage")  
         
         driver = webdriver.Chrome(options=chrome_options)
-        driver.set_page_load_timeout(60)  # Increased timeout to 60 seconds
+        driver.set_page_load_timeout(60)  
         yield driver
         
     except Exception as e:
@@ -183,7 +183,7 @@ def clean_and_write_entry(entry, cleaned_csv):
     
     with open(cleaned_csv, 'a', newline='', encoding='utf-8') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
-        if file.tell() == 0:  # Check if file is empty
+        if file.tell() == 0:  
             writer.writeheader()
         writer.writerow(cleaned_entry)
     
@@ -206,7 +206,7 @@ def is_duplicate_entry(csv_file, new_entry):
             
     except Exception as e:
         logger.error(f"Error checking for duplicates: {str(e)}")
-        return False  # If there's an error, assume it's not a duplicate
+        return False  
     
     return False
 
@@ -221,60 +221,46 @@ def scrape_eater_archives():
     base_url = EATER_CONFIG['base_url']
     pages_to_scrape = EATER_CONFIG['pages_to_scrape']
     
-    for page in range(1, pages_to_scrape + 1):
-        try:
-            url = base_url if page == 1 else f"{base_url}?page={page}"
-            logger.info(f"Processing archive page {page}/{pages_to_scrape}")
-
-            max_retries = 3
-            retry_count = 0
-            while retry_count < max_retries:
-                try:
-                    response = requests.get(
-                        url, 
-                        headers={"User-Agent": random.choice(user_agents)},
-                        timeout=30
-                    )
-                    response.raise_for_status()
-                    break
-                except (requests.Timeout, requests.RequestException) as e:
-                    retry_count += 1
-                    logger.warning(f"Attempt {retry_count} failed: {e}")
-                    if retry_count == max_retries:
-                        raise
-                    time.sleep(5)
-            
-            soup = BeautifulSoup(response.text, 'html.parser')
-            article_links = []
-            
-            for entry in soup.find_all('div', class_='c-compact-river__entry'):
-                link = entry.find('a')
-                if link and 'href' in link.attrs:
-                    article_url = link['href']
-                    if not article_url.startswith('http'):
-                        article_url = 'https://www.eater.com' + article_url
-                    article_links.append(article_url)
-            
-            logger.info(f"Found {len(article_links)} articles on page {page}")
-            
-            for i, article_link in enumerate(article_links, 1):
-                logger.info(f"Processing article {i}/{len(article_links)} on page {page}")
-                scrape_eater_page(article_link, output_csv)
-                time.sleep(random.uniform(
-                    EATER_CONFIG['delay']['between_articles'][0],
-                    EATER_CONFIG['delay']['between_articles'][1]
-                ))
+    try:
+        logger.info("Processing archive page 1/1")
+        
+        max_retries = 3
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                response = requests.get(
+                    base_url, 
+                    headers={"User-Agent": random.choice(user_agents)},
+                    timeout=30
+                )
+                response.raise_for_status()
+                break
+            except (requests.Timeout, requests.RequestException) as e:
+                retry_count += 1
+                logger.warning(f"Attempt {retry_count} failed: {e}")
+                if retry_count == max_retries:
+                    raise
+                time.sleep(5)
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Get just the first article link
+        entry = soup.find('div', class_='c-compact-river__entry')
+        if entry and (link := entry.find('a')):
+            article_url = link['href']
+            if not article_url.startswith('http'):
+                article_url = 'https://www.eater.com' + article_url
                 
-        except requests.Timeout:
-            logger.error(f"Timeout accessing archive page {page}")
-            continue
-        except requests.RequestException as e:
-            logger.error(f"Request error on page {page}: {str(e)}")
-            continue
-        except Exception as e:
-            logger.error(f"Unexpected error on page {page}: {str(e)}")
-            continue
-
+            logger.info("Processing first article")
+            scrape_eater_page(article_url, output_csv)
+            
+    except requests.Timeout:
+        logger.error("Timeout accessing archive page")
+    except requests.RequestException as e:
+        logger.error(f"Request error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        
     post_process_cleaned_data()
 
 if __name__ == "__main__":

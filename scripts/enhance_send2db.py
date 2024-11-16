@@ -20,11 +20,22 @@ def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
     """Process a chunk of restaurants with its own WebDriver instance"""
     driver = None
     try:
-        service = Service(ChromeDriverManager().install())
         chrome_options = Options()
         for option in CHROME_OPTIONS:
             chrome_options.add_argument(option)
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+            
+        try:
+            # First try using system ChromeDriver
+            driver = webdriver.Chrome(options=chrome_options)
+        except Exception as e:
+            logger.warning(f"System ChromeDriver failed, trying alternative path: {e}")
+            try:
+                # Try explicit path to ChromeDriver
+                service = Service('/usr/bin/chromedriver')
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+            except Exception as e:
+                logger.error(f"All ChromeDriver attempts failed: {e}")
+                raise
         
         total_in_chunk = len(chunk_df)
         
@@ -55,7 +66,10 @@ def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
                 
     finally:
         if driver:
-            driver.quit()
+            try:
+                driver.quit()
+            except Exception as e:
+                logger.error(f"Error closing driver: {str(e)}")
 
 def is_row_processed(output_file, restaurant_name, address):
     """Check if a row has already been processed"""
@@ -91,7 +105,7 @@ def main():
             'Payments', 'Parking', 'Doesnt Offer'
         ]
         
-        input_csv = Path("data/raw/missing_restaurants.csv")
+        input_csv = Path("data/raw/cleaned_restaurants.csv")
         enhanced_csv = Path("data/processed/cleaned_restaurants_enhanced.csv")
         enhanced_csv.parent.mkdir(parents=True, exist_ok=True)
         
