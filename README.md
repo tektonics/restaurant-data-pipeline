@@ -116,6 +116,23 @@ The project uses several configuration files:
 - Core field specifications
 - Logging configurations
 
+### Scraping Configuration
+- `pages_to_scrape`: Number of archive pages to scrape (default: 75)
+- `delay.between_pages`: Delay between page requests (default: 2-5 seconds)
+- `delay.between_articles`: Delay between article scrapes (default: 5-10 seconds)
+
+Example configuration in src/config/config.py:
+
+```python
+EATER_CONFIG = {
+    'pages_to_scrape': 75,  # Modify this value to scrape more or fewer pages
+    'delay': {
+        'between_pages': (2, 5),
+        'between_articles': (5, 10)
+    }
+}
+```
+
 ## Usage
 
 1. Run the main data collection pipeline:
