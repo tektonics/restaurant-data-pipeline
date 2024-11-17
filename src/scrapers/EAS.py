@@ -210,37 +210,50 @@ def scrape_eater_archives():
     pages_to_scrape = EATER_CONFIG['pages_to_scrape']
     
     try:
-        logger.info("Processing archive page 1/1")
-        
-        max_retries = 3
-        retry_count = 0
-        while retry_count < max_retries:
-            try:
-                response = requests.get(
-                    base_url, 
-                    headers={"User-Agent": random.choice(user_agents)},
-                    timeout=30
-                )
-                response.raise_for_status()
+        for page in range(1, pages_to_scrape + 1):
+            logger.info(f"Processing archive page {page}/{pages_to_scrape}")
+            
+            page_url = f"{base_url}?page={page}" if page > 1 else base_url
+            
+            max_retries = 3
+            retry_count = 0
+            while retry_count < max_retries:
+                try:
+                    response = requests.get(
+                        page_url, 
+                        headers={"User-Agent": random.choice(user_agents)},
+                        timeout=30
+                    )
+                    response.raise_for_status()
+                    break
+                except (requests.Timeout, requests.RequestException) as e:
+                    retry_count += 1
+                    logger.warning(f"Attempt {retry_count} failed: {e}")
+                    if retry_count == max_retries:
+                        raise
+                    time.sleep(5)
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Get all article links
+            entries = soup.find_all('div', class_='c-compact-river__entry')
+            if not entries:
+                logger.warning(f"No entries found on page {page}. Stopping pagination.")
                 break
-            except (requests.Timeout, requests.RequestException) as e:
-                retry_count += 1
-                logger.warning(f"Attempt {retry_count} failed: {e}")
-                if retry_count == max_retries:
-                    raise
-                time.sleep(5)
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Get just the first article link
-        entry = soup.find('div', class_='c-compact-river__entry')
-        if entry and (link := entry.find('a')):
-            article_url = link['href']
-            if not article_url.startswith('http'):
-                article_url = 'https://www.eater.com' + article_url
                 
-            logger.info("Processing first article")
-            scrape_eater_page(article_url, output_csv)
+            for idx, entry in enumerate(entries, 1):
+                if link := entry.find('a'):
+                    article_url = link['href']
+                    if not article_url.startswith('http'):
+                        article_url = 'https://www.eater.com' + article_url
+                        
+                    logger.info(f"Processing article {idx}/{len(entries)} on page {page}")
+                    scrape_eater_page(article_url, output_csv)
+                    time.sleep(random.uniform(*EATER_CONFIG['delay']['between_articles']))
+            
+            # Sleep between pages to avoid rate limiting
+            if page < pages_to_scrape:
+                time.sleep(random.uniform(*EATER_CONFIG['delay']['between_pages']))
             
     except requests.Timeout:
         logger.error("Timeout accessing archive page")
@@ -248,8 +261,8 @@ def scrape_eater_archives():
         logger.error(f"Request error: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
-        
-    post_process_cleaned_data()
+    finally:
+        post_process_cleaned_data()
 
 if __name__ == "__main__":
     scrape_eater_archives()

@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.1.0] - 2024-03-16
+## [1.1.0] - 2024-11-16
 
 ### Added
 - Centralized WebDriver management system
@@ -8,6 +8,11 @@
 - Directory management utilities
 - Progress tracking for batch operations
 - Configurable parallel processing
+- Configurable pagination for Eater.com archive scraping
+- Page count control through EATER_CONFIG
+- Empty page detection to prevent unnecessary requests
+- Enhanced progress tracking for multi-page scraping
+- Automatic pagination termination on content exhaustion
 
 ### Changed
 - Refactored scraper modules to use shared utilities
@@ -15,6 +20,10 @@
 - Consolidated duplicate code across modules
 - Enhanced logging with better context
 - Optimized parallel processing configuration
+- Refactored archive scraping to support multiple pages
+- Improved rate limiting between page requests
+- Enhanced logging for pagination progress
+- Optimized page processing with better error recovery
 
 ### Fixed
 - Duplicate WebDriver initialization issues
@@ -22,6 +31,10 @@
 - Memory leaks in parallel processing
 - Resource cleanup in error scenarios
 - Directory creation race conditions
+- Single page limitation in archive scraping
+- Missing delay between page requests
+- Incomplete archive processing
+- Pagination error handling
 
 ### Technical Debt
 - Removed redundant WebDriver setup code
