@@ -53,8 +53,10 @@ EXPECTED_GOOGLE_FIELDS = [
 
 EATER_CONFIG = {
     'base_url': "https://www.eater.com/maps/archives",
-    'pages_to_scrape': 75,
-    'articles_per_page': None,
+    'page_range': {
+        'start': 1,
+        'end': 2
+    },
     'user_agents': [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
         "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36",
@@ -63,7 +65,7 @@ EATER_CONFIG = {
         "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:46.0) Gecko/20100101 Firefox/46.0"
     ],
     'delay': {
-        'page_load': (5, 10), 
+        'page_load': (5, 10),
         'between_articles': (5, 10),
         'between_pages': (2, 5)
     }

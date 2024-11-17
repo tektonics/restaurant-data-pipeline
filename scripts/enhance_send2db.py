@@ -137,6 +137,8 @@ def main():
         db = RestaurantDB()
         try:
             db.connect()
+            db.create_tables()
+            
             final_df = pd.read_csv(enhanced_csv)
             db.insert_restaurant_data(final_df)
             logger.info("Data successfully loaded into database")

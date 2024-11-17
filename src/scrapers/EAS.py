@@ -54,7 +54,7 @@ def scrape_eater_page(url, output_csv):
             driver.get(url)
             time.sleep(10)  
             
-            wait = WebDriverWait(driver, 30)  # Increased from 20 to 30 seconds
+            wait = WebDriverWait(driver, 15)  
             wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'c-mapstack__card')))
             
             soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -201,17 +201,18 @@ def is_duplicate_entry(csv_file, new_entry):
 def scrape_eater_archives():
     """Main scraping function"""
     global last_post_process_time
-    last_post_process_time = time.time()  
+    last_post_process_time = time.time()
     
     output_csv = RAW_RESTAURANTS_CSV
     os.makedirs(os.path.dirname(output_csv), exist_ok=True)
     os.makedirs(os.path.dirname(CLEANED_RESTAURANTS_CSV), exist_ok=True)
     base_url = EATER_CONFIG['base_url']
-    pages_to_scrape = EATER_CONFIG['pages_to_scrape']
+    start_page = EATER_CONFIG['page_range']['start']
+    end_page = EATER_CONFIG['page_range']['end']
     
     try:
-        for page in range(1, pages_to_scrape + 1):
-            logger.info(f"Processing archive page {page}/{pages_to_scrape}")
+        for page in range(start_page, end_page + 1):
+            logger.info(f"Processing archive page {page} (range: {start_page}-{end_page})")
             
             page_url = f"{base_url}?page={page}" if page > 1 else base_url
             
@@ -252,7 +253,7 @@ def scrape_eater_archives():
                     time.sleep(random.uniform(*EATER_CONFIG['delay']['between_articles']))
             
             # Sleep between pages to avoid rate limiting
-            if page < pages_to_scrape:
+            if page < end_page:
                 time.sleep(random.uniform(*EATER_CONFIG['delay']['between_pages']))
             
     except requests.Timeout:
