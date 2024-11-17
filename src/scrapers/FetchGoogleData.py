@@ -18,6 +18,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from urllib.parse import quote
 import pandas as pd
 import os
+from src.utils.webdriver_manager import create_driver
+from src.utils.csv_handler import ensure_csv_exists, write_row
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -212,45 +214,14 @@ def process_csv(input_file, output_file):
     """Process the CSV file and enhance with Google Maps data"""
     driver = None
     try:
-        # Set up Chrome options
-        chrome_options = Options()
-        for option in CHROME_OPTIONS:
-            chrome_options.add_argument(option)
-            
-        # Use system ChromeDriver
-        try:
-            # First try system ChromeDriver
-            driver = webdriver.Chrome(options=chrome_options)
-        except Exception as e:
-            logger.warning(f"System ChromeDriver failed: {e}")
-            try:
-                # Fallback to ChromeDriverManager
-                service = Service(ChromeDriverManager().install())
-                driver = webdriver.Chrome(service=service, options=chrome_options)
-            except Exception as e:
-                logger.error(f"All ChromeDriver attempts failed: {e}")
-                raise
-        
-        driver.implicitly_wait(5)
-        driver.set_page_load_timeout(15)
-        
-        # Read input CSV
+        driver = create_driver()
         df = pd.read_csv(input_file)
-        total_rows = len(df)
         
-        # Ensure output directory exists
-        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        ensure_csv_exists(output_file, list(df.columns) + list(EXPECTED_GOOGLE_FIELDS))
         
-        # Write header to output file
-        fieldnames = list(df.columns) + list(EXPECTED_GOOGLE_FIELDS)
-        with open(output_file, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-        
-        # Process each row
         for index, row in df.iterrows():
             try:
-                logger.info(f"Processing row {index + 1}/{total_rows}")
+                logger.info(f"Processing row {index + 1}/{len(df)}")
                 google_maps_url = row.get('Google Maps Link')
                 
                 if not google_maps_url or google_maps_url == 'Google Maps Link Not Found':
@@ -260,28 +231,19 @@ def process_csv(input_file, output_file):
                 google_data = fetch_google_maps_data(google_maps_url, driver)
                 processed_row = {**row.to_dict(), **google_data}
                 
-                with open(output_file, 'a', newline='', encoding='utf-8') as f:
-                    writer = csv.DictWriter(f, fieldnames=fieldnames)
-                    writer.writerow(processed_row)
-                    
+                write_row(output_file, processed_row, list(df.columns) + list(EXPECTED_GOOGLE_FIELDS))
+                
             except Exception as e:
                 logger.error(f"Error processing row {index}: {str(e)}")
-                # Write original row without Google data
-                with open(output_file, 'a', newline='', encoding='utf-8') as f:
-                    writer = csv.DictWriter(f, fieldnames=fieldnames)
-                    writer.writerow(row.to_dict())
+                write_row(output_file, row.to_dict(), list(df.columns) + list(EXPECTED_GOOGLE_FIELDS))
                 continue
                 
-    except Exception as e:
-        logger.error(f"Error processing CSV: {str(e)}")
-        raise
-        
     finally:
         if driver:
             try:
                 driver.quit()
             except Exception as e:
-                logger.error(f"Error closing driver: {str(e)}")
+                logger.error(f"Error closing driver: {e}")
 
 def process_google_data(input_file=CLEANED_RESTAURANTS_CSV, output_file=ENHANCED_RESTAURANTS_CSV):
     process_csv(input_file, output_file)

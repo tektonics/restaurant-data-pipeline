@@ -23,19 +23,27 @@ This project automates the collection of restaurant data, processes and standard
 - Chrome WebDriver automation with headless mode
 
 ### Data Processing
-- Address standardization and parsing
-- City and state validation with abbreviation mapping
+- Address standardization and parsing with clean_and_split_address utility
+- City and state validation with mapping system
 - ZIP code verification and normalization
-- Multi-level duplicate detection
-- Progressive data enhancement
-- Batch processing with parallel execution
+- Duplicate detection through remove_duplicates function
+- Parallel processing with configurable workers:
+  - Default 4 worker threads
+  - Chunk-based processing for memory efficiency
+  - Progress tracking per chunk
+  - Automatic batch size calculation
+- CSV operations with error recovery:
+  - Atomic writes with newline handling
+  - UTF-8 encoding support
+  - Automatic directory creation
+  - Row-level error handling
 
 ### Database Integration
-- SQLite database with optimized schema
-- Automated backup system with timestamped copies
-- Transaction management and rollback support
-- Efficient indexing for common queries
-- Structured data validation
+- SQLite database with basic schema
+- Single-file database structure
+- Basic transaction support
+- Simple data insertion with pandas DataFrame
+- Error logging for database operations
 
 ## Error Handling
 - Timeout protection (30-minute global timeout)
@@ -43,6 +51,21 @@ This project automates the collection of restaurant data, processes and standard
 - Comprehensive logging system with separate database logs
 - WebDriver recovery and session management
 - Transaction rollback on failures
+
+## Code Organization
+
+### Utility Modules
+- Centralized WebDriver management
+- Unified CSV operations
+- Directory structure handling
+- Standardized error handling patterns
+- Progress tracking and monitoring
+
+### Processing Pipeline
+- Parallel processing with 4 default workers
+- Configurable chunk size based on data volume
+- Memory-efficient batch processing
+- Progress tracking per worker
 
 ## Project Structure
 
@@ -124,16 +147,58 @@ The project uses several configuration files:
 - selenium >= 4.0.0
 - python-dotenv >= 0.19.0
 - webdriver-manager == 4.0.0
+- urllib3 >= 1.26.0
+- pathlib >= 1.0.1
 
 ## Development
 
-The project uses several development tools:
-- pre-commit hooks for code quality
-- Black for code formatting
-- Flake8 for linting
-- Comprehensive .gitignore configuration
-- Structured logging throughout
+### Code Quality Tools
+
+#### Pre-commit Hooks
+The project uses pre-commit hooks to ensure code quality. To set up:
+
+1. Install pre-commit:
+   ```bash
+   pip install pre-commit
+   pre-commit install
+   ```
+
+2. Run against all files:
+   ```bash
+   pre-commit run --all-files
+   ```
+
+3. Available hooks:
+   - trailing-whitespace: Removes trailing whitespace
+   - end-of-file-fixer: Ensures files end with a newline
+   - check-yaml: Validates YAML syntax
+   - check-added-large-files: Prevents large files from being committed
+   - debug-statements: Checks for debugger imports
+   - black: Formats Python code
+   - flake8: Lints Python code
+
+#### Black Configuration
+Black is configured with default settings:
+- Line length: 88 characters
+- String normalization: Double quotes
+- Python version: Python 3.8+
+
+To run Black manually:
+```bash
+black src/ scripts/ tests/
+```
+
+#### Flake8 Configuration
+Flake8 enforces PEP 8 style guide with custom settings
+
+### WebDriver Configuration
+- Centralized WebDriver management
+- Automatic ChromeDriver installation
+- Fallback to system ChromeDriver
+- Configurable options and timeouts
 
 ## Project Status
 
 This project is currently under active development. The core functionality is implemented and working, with ongoing improvements to data collection reliability and processing efficiency.
+
+

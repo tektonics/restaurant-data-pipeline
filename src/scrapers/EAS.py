@@ -18,6 +18,7 @@ import pandas as pd
 from threading import Timer
 from ..data_processing.cleanAddrRestaurants import fill_missing_city, clean_and_split_address
 from ..utils.cleaning_monitor import log_cleaning_progress
+from src.utils.webdriver_manager import create_driver
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,37 +32,24 @@ POST_PROCESS_INTERVAL = 300
 last_post_process_time = 0
 
 @contextmanager
-def create_driver():
-    """Create and return a configured Chrome WebDriver instance"""
+def get_scraping_driver():
+    """Get a configured WebDriver instance for scraping"""
     driver = None
     try:
-        chrome_options = Options()
-        for option in CHROME_OPTIONS:
-            chrome_options.add_argument(option)
-        chrome_options.add_argument(f"user-agent={random.choice(user_agents)}")
-        chrome_options.add_argument("--disable-gpu")  
-        chrome_options.add_argument("--no-sandbox")  
-        chrome_options.add_argument("--disable-dev-shm-usage")  
-        
-        driver = webdriver.Chrome(options=chrome_options)
-        driver.set_page_load_timeout(60)  
+        driver = create_driver([f"user-agent={random.choice(user_agents)}"])
         yield driver
-        
-    except Exception as e:
-        logger.error(f"Error creating WebDriver: {str(e)}")
-        raise
     finally:
         if driver:
             try:
                 driver.quit()
             except:
                 pass
-            time.sleep(3)  
+            time.sleep(3)
 
 def scrape_eater_page(url, output_csv):
     logger.info(f"Attempting to load page: {url}")
     
-    with create_driver() as driver:
+    with get_scraping_driver() as driver:
         try:
             driver.get(url)
             time.sleep(10)  

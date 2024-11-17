@@ -1,17 +1,10 @@
 from setuptools import setup, find_packages
 import os
 from pathlib import Path
+from src.utils.directory_manager import ensure_project_directories
 
-# Create necessary directories
-data_dirs = [
-    'data/raw',
-    'data/processed',
-    'data/database',
-    'logs'
-]
-
-for dir_path in data_dirs:
-    Path(dir_path).mkdir(parents=True, exist_ok=True)
+# Create all necessary project directories
+ensure_project_directories()
 
 setup(
     name="restaurant-data-pipeline",
