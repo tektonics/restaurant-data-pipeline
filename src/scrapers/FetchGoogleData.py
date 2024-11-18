@@ -93,7 +93,7 @@ def fetch_google_maps_data(url, driver=None):
 
     try:
         driver.get(url)
-        time.sleep(0.5)
+        time.sleep(1)
 
         try:
             elements = WebDriverWait(driver, 5).until(
@@ -126,14 +126,15 @@ def fetch_google_maps_data(url, driver=None):
                 about_tab = safe_find_element(driver, By.CSS_SELECTOR, 'button[aria-label*="About"]', timeout=2)
                 if about_tab:
                     about_tab.click()
-                    time.sleep(0.3)
+                    time.sleep(1)
             except:
                 pass
 
         try:
-            info_container = WebDriverWait(driver, 3).until(
+            info_container = WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'div.m6QErb[role="region"]'))
             )
+            time.sleep(5)
             
             if info_container:
                 info_sections = info_container.find_elements(
@@ -162,8 +163,12 @@ def fetch_google_maps_data(url, driver=None):
                 if unavailable_items:
                     data['Doesnt Offer'] = ', '.join(unavailable_items)
                     
+        except TimeoutException:
+            logger.warning("Info container not found within timeout")
+            return data
         except Exception as e:
             logger.error(f"Error extracting information sections: {str(e)}")
+            return data
 
         if coords := re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', driver.current_url):
             data['Latitude'], data['Longitude'] = coords.groups()

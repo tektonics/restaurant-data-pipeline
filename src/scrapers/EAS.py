@@ -52,7 +52,7 @@ def scrape_eater_page(url, output_csv):
     with get_scraping_driver() as driver:
         try:
             driver.get(url)
-            time.sleep(10)  
+            time.sleep(3)
             
             wait = WebDriverWait(driver, 15)  
             wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'c-mapstack__card')))
@@ -250,11 +250,7 @@ def scrape_eater_archives():
                         
                     logger.info(f"Processing article {idx}/{len(entries)} on page {page}")
                     scrape_eater_page(article_url, output_csv)
-                    time.sleep(random.uniform(*EATER_CONFIG['delay']['between_articles']))
-            
-            # Sleep between pages to avoid rate limiting
-            if page < end_page:
-                time.sleep(random.uniform(*EATER_CONFIG['delay']['between_pages']))
+                    time.sleep(2)
             
     except requests.Timeout:
         logger.error("Timeout accessing archive page")

@@ -43,12 +43,10 @@ def process_batch(batch_df, chunk_id, output_file, fieldnames):
             chrome_options.add_argument(option)
             
         try:
-            # First try using system ChromeDriver
             driver = webdriver.Chrome(options=chrome_options)
         except Exception as e:
             logger.warning(f"System ChromeDriver failed, trying alternative path: {e}")
             try:
-                # Try explicit path to ChromeDriver
                 service = Service('/usr/bin/chromedriver')
                 driver = webdriver.Chrome(service=service, options=chrome_options)
             except Exception as e:
@@ -57,9 +55,9 @@ def process_batch(batch_df, chunk_id, output_file, fieldnames):
         
         total_in_batch = len(batch_df)
         
-        for idx, row in batch_df.iterrows():
+        for i, (idx, row) in enumerate(batch_df.iterrows(), 1):
             try:
-                logger.info(f"Batch {chunk_id}: Processing {idx - batch_df.index[0] + 1}/{total_in_batch}")
+                logger.info(f"Batch {chunk_id}: Processing {i}/{total_in_batch}")
                 
                 google_maps_url = row.get('Google Maps Link')
                 if not google_maps_url or google_maps_url == 'Google Maps Link Not Found':
@@ -76,7 +74,7 @@ def process_batch(batch_df, chunk_id, output_file, fieldnames):
                 logger.info(f"Successfully processed and saved: {row['Restaurant Name']}")
                 
             except Exception as e:
-                logger.error(f"Error processing row {idx} in batch {chunk_id}: {str(e)}")
+                logger.error(f"Error processing row {i} in batch {chunk_id}: {str(e)}")
                 with open(output_file, 'a', newline='', encoding='utf-8') as f:
                     writer = csv.DictWriter(f, fieldnames=fieldnames)
                     writer.writerow(row.to_dict())
