@@ -54,3 +54,20 @@
 - Improved installation instructions
 - Added parallel processing configuration guide
 - Enhanced troubleshooting documentation
+
+## [1.1.1] - 2024-11-19
+
+### Added
+- Embedded link extraction from restaurant descriptions
+
+### Changed
+- Improved parallel processing with configurable timeout
+- Enhanced error recovery in WebDriver management
+- Better handling of missing Google Maps links
+- More robust address parsing and validation
+
+### Fixed
+- WebDriver resource management
+- CSV writing atomicity
+- Parallel processing timeout issues
+- Google Maps data extraction reliability

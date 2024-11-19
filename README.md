@@ -21,6 +21,8 @@ This project automates the collection of restaurant data, processes and standard
 - Intelligent rate limiting and retry mechanisms
 - Rotating user agents for request management
 - Chrome WebDriver automation with headless mode
+- Embedded link extraction from restaurant descriptions
+
 
 ### Data Processing
 - Address standardization and parsing with clean_and_split_address utility
@@ -62,10 +64,11 @@ This project automates the collection of restaurant data, processes and standard
 - Progress tracking and monitoring
 
 ### Processing Pipeline
-- Parallel processing with 4 default workers
+
 - Configurable chunk size based on data volume
 - Memory-efficient batch processing
 - Progress tracking per worker
+- Configurable parallel processing (default: 4 workers with 30-minute timeout)
 
 ## Project Structure
 
@@ -166,6 +169,7 @@ EATER_CONFIG = {
 - webdriver-manager == 4.0.0
 - urllib3 >= 1.26.0
 - pathlib >= 1.0.1
+- csv >= 1.0
 
 ## Development
 
