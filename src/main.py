@@ -2,7 +2,14 @@ import platform
 from src.scrapers import scrape_eater_archives, process_csv
 from src.data_processing import clean_and_split_address, remove_duplicates
 from src.database import init_database, RestaurantDB
-from src.config.config import RAW_RESTAURANTS_CSV, CLEANED_RESTAURANTS_CSV, ENHANCED_RESTAURANTS_CSV, CHROME_OPTIONS
+from src.config.config import (
+    RAW_RESTAURANTS_CSV, 
+    CLEANED_RESTAURANTS_CSV, 
+    ENHANCED_RESTAURANTS_CSV, 
+    CHROME_OPTIONS,
+    CSV_FIELDNAMES,
+    PARALLEL_PROCESSING_CONFIG
+)
 import pandas as pd
 import logging
 import threading
@@ -29,7 +36,7 @@ class TimeoutError(Exception):
 def timeout_handler():
     raise TimeoutError("Process timed out")
 
-def run_with_timeout(timeout_duration):
+def run_with_timeout(timeout_duration=PARALLEL_PROCESSING_CONFIG['timeout_seconds']):
     timer = threading.Timer(timeout_duration, timeout_handler)
     timer.start()
     return timer
@@ -106,7 +113,7 @@ def is_row_processed(output_file, restaurant_name, address):
 def process_with_parallel(df, output_file, fieldnames):
     """Enhanced parallel processing with better error handling and progress tracking"""
     total_rows = len(df)
-    num_workers = 4
+    num_workers = PARALLEL_PROCESSING_CONFIG['num_workers']
     chunk_size = math.ceil(total_rows / num_workers)
     chunks = [df[i:i + chunk_size] for i in range(0, total_rows, chunk_size)]
     
@@ -139,28 +146,14 @@ def main():
         if platform.system() != 'Windows':
             import signal
             signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(1800)
+            signal.alarm(PARALLEL_PROCESSING_CONFIG['timeout_seconds'])
         else:
-            timer = run_with_timeout(1800)
+            timer = run_with_timeout()
         
-        # Define fieldnames for CSV
-        fieldnames = [
-            'Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 'Website',
-            'Google Maps Link', 'Cleaned Address', 'City', 'State', 'Zip', 
-            'Star Rating', 'Number of Reviews', 'Restaurant Category', 'Price Range',
-            'Latitude', 'Longitude', 'Accessibility', 'Service options', 'Highlights',
-            'Popular for', 'Offerings', 'Dining options', 'Amenities', 'Atmosphere',
-            'Planning', 'Payments', 'Parking', 'Doesnt Offer'
-        ]
-
-        # Create necessary directories and initialize files
-        for filepath in [RAW_RESTAURANTS_CSV, CLEANED_RESTAURANTS_CSV, ENHANCED_RESTAURANTS_CSV]:
-            os.makedirs(os.path.dirname(filepath), exist_ok=True)
-
         # Initialize enhanced CSV if it doesn't exist
         if not os.path.exists(ENHANCED_RESTAURANTS_CSV):
             with open(ENHANCED_RESTAURANTS_CSV, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer = csv.DictWriter(f, fieldnames=CSV_FIELDNAMES)
                 writer.writeheader()
 
         logger.info("Initializing Eater.com scraper...")
@@ -175,7 +168,7 @@ def main():
         df.to_csv(CLEANED_RESTAURANTS_CSV, index=False)
 
         logger.info("Enhancing with Google Maps data...")
-        process_with_parallel(df, ENHANCED_RESTAURANTS_CSV, fieldnames)
+        process_with_parallel(df, ENHANCED_RESTAURANTS_CSV, CSV_FIELDNAMES)
 
         logger.info("Initializing database...")
         init_database()

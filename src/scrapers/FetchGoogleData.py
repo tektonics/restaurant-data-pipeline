@@ -9,7 +9,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException
 from bs4 import BeautifulSoup
-from ..config.config import CLEANED_RESTAURANTS_CSV, ENHANCED_RESTAURANTS_CSV, CHROME_OPTIONS, TIMEOUT_CONFIG
+from ..config.config import (
+    CLEANED_RESTAURANTS_CSV, 
+    ENHANCED_RESTAURANTS_CSV, 
+    CHROME_OPTIONS, 
+    TIMEOUT_CONFIG,
+    EXPECTED_GOOGLE_FIELDS
+)
 import logging
 from src.utils.helpers import ensure_directories_exist
 from pathlib import Path
@@ -23,27 +29,6 @@ from src.utils.csv_handler import ensure_csv_exists, write_row
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-EXPECTED_GOOGLE_FIELDS = [
-    'Star Rating',
-    'Number of Reviews',
-    'Restaurant Category',
-    'Price Range',
-    'Latitude',
-    'Longitude',
-    'Accessibility',
-    'Service options',
-    'Highlights',
-    'Popular for',
-    'Offerings',
-    'Dining options',
-    'Amenities',
-    'Atmosphere',
-    'Planning',
-    'Payments',
-    'Parking',
-    'Doesnt Offer'
-]
 
 def clean_text(text):
     if not text:

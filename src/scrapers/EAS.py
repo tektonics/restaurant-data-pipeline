@@ -70,8 +70,20 @@ def scrape_eater_page(url, output_csv):
                 if description_container:
                     description_paragraphs = description_container.find_all('p')
                     description = ''.join([p.text.strip() for p in description_paragraphs])
+                    
+                    # Extract all links from the description
+                    embedded_links = []
+                    for p in description_paragraphs:
+                        links = p.find_all('a')
+                        for link in links:
+                            link_data = {
+                                'text': link.text.strip(),
+                                'url': link.get('href', ''),
+                            }
+                            embedded_links.append(link_data)
                 else:
                     description = "Description Not Found"
+                    embedded_links = []
                 
                 info_section = entry.find('div', class_='c-mapstack__info')
                 
@@ -101,7 +113,8 @@ def scrape_eater_page(url, output_csv):
                         'Address': address,
                         'Phone': phone,
                         'Website': website,
-                        'Google Maps Link': google_maps_link
+                        'Google Maps Link': google_maps_link,
+                        'Embedded Links': embedded_links  # Add the new field
                     }
                     
                     if not is_duplicate_entry(output_csv, new_entry):
@@ -121,7 +134,7 @@ def scrape_eater_page(url, output_csv):
 def write_to_raw_csv(entry, output_csv):
     """Write a single entry to the raw CSV file"""
     fieldnames = ['Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 
-                 'Website', 'Google Maps Link']
+                 'Website', 'Google Maps Link', 'Embedded Links']
     
     with open(output_csv, 'a', newline='', encoding='utf-8') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -167,7 +180,7 @@ def clean_and_write_entry(entry, cleaned_csv):
         return
     
     fieldnames = ['Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 
-                 'Website', 'Google Maps Link', 'Cleaned Address', 'City', 'State', 'Zip']
+                 'Website', 'Google Maps Link', 'Cleaned Address', 'City', 'State', 'Zip', 'Embedded Links']
     
     with open(cleaned_csv, 'a', newline='', encoding='utf-8') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)

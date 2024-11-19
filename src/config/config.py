@@ -24,6 +24,7 @@ EXPECTED_RESTAURANT_FIELDS = [
     'Phone',
     'Website',
     'Google Maps Link',
+    'Embedded Links',
     'Instagram Name',
     'Instagram URL'
 ]
@@ -141,3 +142,18 @@ WEBDRIVER_CONFIG = {
 }
 
 logging.getLogger('selenium').setLevel(logging.ERROR)
+
+CSV_FIELDNAMES = [
+    'Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 'Website',
+    'Google Maps Link', 'Cleaned Address', 'City', 'State', 'Zip', 'Embedded Links',
+    'Star Rating', 'Number of Reviews', 'Restaurant Category', 'Price Range',
+    'Latitude', 'Longitude', 'Accessibility', 'Service options', 'Highlights',
+    'Popular for', 'Offerings', 'Dining options', 'Amenities', 'Atmosphere',
+    'Planning', 'Payments', 'Parking', 'Doesnt Offer'
+]
+
+PARALLEL_PROCESSING_CONFIG = {
+    'num_workers': 4,
+    'timeout_seconds': 1800  # 30 minutes
+}
+

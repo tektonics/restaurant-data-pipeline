@@ -9,7 +9,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from concurrent.futures import ThreadPoolExecutor
 from src.scrapers.FetchGoogleData import fetch_google_maps_data
 from src.database.db_operations import RestaurantDB
-from src.config.config import CHROME_OPTIONS
+from src.config.config import CHROME_OPTIONS, CSV_FIELDNAMES, PARALLEL_PROCESSING_CONFIG
 from urllib.parse import quote
 import csv
 
@@ -95,29 +95,19 @@ def write_row_to_csv(row_data, output_file, fieldnames):
 
 def main():
     try:
-        fieldnames = [
-            'Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 'Website',
-            'Google Maps Link', 'Cleaned Address',
-            'City', 'State', 'Zip', 'Star Rating', 'Number of Reviews',
-            'Restaurant Category', 'Price Range', 'Latitude', 'Longitude', 'Accessibility',
-            'Service options', 'Highlights', 'Popular for', 'Offerings',
-            'Dining options', 'Amenities', 'Atmosphere', 'Planning',
-            'Payments', 'Parking', 'Doesnt Offer'
-        ]
-        
         input_csv = Path("data/raw/cleaned_restaurants.csv")
         enhanced_csv = Path("data/processed/cleaned_restaurants_enhanced.csv")
         enhanced_csv.parent.mkdir(parents=True, exist_ok=True)
         
         if not enhanced_csv.exists():
             with open(enhanced_csv, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer = csv.DictWriter(f, fieldnames=CSV_FIELDNAMES)
                 writer.writeheader()
         
         df = pd.read_csv(input_csv)
         total_rows = len(df)
         
-        num_workers = 4
+        num_workers = PARALLEL_PROCESSING_CONFIG['num_workers']
         chunk_size = math.ceil(total_rows / num_workers)
         chunks = [df[i:i + chunk_size] for i in range(0, total_rows, chunk_size)]
         
@@ -125,7 +115,7 @@ def main():
         
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             futures = [
-                executor.submit(process_chunk, chunk, i, enhanced_csv, fieldnames)
+                executor.submit(process_chunk, chunk, i, enhanced_csv, CSV_FIELDNAMES)
                 for i, chunk in enumerate(chunks)
             ]
             
