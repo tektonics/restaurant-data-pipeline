@@ -25,8 +25,7 @@ EXPECTED_RESTAURANT_FIELDS = [
     'Website',
     'Google Maps Link',
     'Embedded Links',
-    'Instagram Name',
-    'Instagram URL'
+    'Venue ID'
 ]
 
 EXPECTED_GOOGLE_FIELDS = [
@@ -106,7 +105,8 @@ DEFAULT_VALUES = {
     'website': "Website Not Found",
     'google_maps': "Google Maps Link Not Found",
     'instagram_name': "Instagram Name Not Found",
-    'instagram_url': "Instagram URL Not Found"
+    'instagram_url': "Instagram URL Not Found",
+    'venue_id': "Venue ID Not Found"
 }
 
 RATE_LIMITS = {
@@ -145,8 +145,8 @@ logging.getLogger('selenium').setLevel(logging.ERROR)
 
 CSV_FIELDNAMES = [
     'Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 'Website',
-    'Google Maps Link', 'Cleaned Address', 'City', 'State', 'Zip', 'Embedded Links',
-    'Star Rating', 'Number of Reviews', 'Restaurant Category', 'Price Range',
+    'Google Maps Link', 'Cleaned Address', 'City', 'State', 'Zip', 'Embedded Links', 'Instagram Name',
+    'Instagram URL', 'Venue ID','Star Rating', 'Number of Reviews', 'Restaurant Category', 'Price Range',
     'Latitude', 'Longitude', 'Accessibility', 'Service options', 'Highlights',
     'Popular for', 'Offerings', 'Dining options', 'Amenities', 'Atmosphere',
     'Planning', 'Payments', 'Parking', 'Doesnt Offer'

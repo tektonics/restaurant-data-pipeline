@@ -12,7 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
-from ..config.config import EATER_CONFIG, CHROME_OPTIONS, RAW_RESTAURANTS_CSV, CLEANED_RESTAURANTS_CSV
+from ..config.config import EATER_CONFIG, CHROME_OPTIONS, RAW_RESTAURANTS_CSV, CLEANED_RESTAURANTS_CSV, DEFAULT_VALUES
 from contextlib import contextmanager
 import pandas as pd
 from threading import Timer
@@ -85,6 +85,12 @@ def scrape_eater_page(url, output_csv):
                     description = "Description Not Found"
                     embedded_links = []
                 
+                # Get Venue ID
+                venue_id = "Venue ID Not Found"
+                card_hed = entry.find('div', class_='c-mapstack__card-hed')
+                if card_hed and 'data-venue-id' in card_hed.attrs:
+                    venue_id = card_hed['data-venue-id']
+
                 info_section = entry.find('div', class_='c-mapstack__info')
                 
                 address = "Address Not Found"
@@ -114,7 +120,8 @@ def scrape_eater_page(url, output_csv):
                         'Phone': phone,
                         'Website': website,
                         'Google Maps Link': google_maps_link,
-                        'Embedded Links': embedded_links  # Add the new field
+                        'Embedded Links': embedded_links,
+                        'Venue ID': venue_id
                     }
                     
                     if not is_duplicate_entry(output_csv, new_entry):
@@ -133,8 +140,10 @@ def scrape_eater_page(url, output_csv):
 
 def write_to_raw_csv(entry, output_csv):
     """Write a single entry to the raw CSV file"""
-    fieldnames = ['Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 
-                 'Website', 'Google Maps Link', 'Embedded Links']
+    fieldnames = [
+        'Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 
+        'Website', 'Google Maps Link', 'Embedded Links', 'Venue ID'
+    ]
     
     with open(output_csv, 'a', newline='', encoding='utf-8') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -179,8 +188,11 @@ def clean_and_write_entry(entry, cleaned_csv):
     if not cleaned_entry['Zip']:
         return
     
-    fieldnames = ['Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 
-                 'Website', 'Google Maps Link', 'Cleaned Address', 'City', 'State', 'Zip', 'Embedded Links']
+    fieldnames = [
+        'Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 
+        'Website', 'Google Maps Link', 'Cleaned Address', 'City', 'State', 
+        'Zip', 'Embedded Links', 'Venue ID'
+    ]
     
     with open(cleaned_csv, 'a', newline='', encoding='utf-8') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)

@@ -44,8 +44,6 @@ def init_database():
                 phone TEXT,
                 website TEXT,
                 google_maps_link TEXT,
-                instagram_name TEXT,
-                instagram_url TEXT,
                 cleaned_address TEXT,
                 city TEXT,
                 state TEXT,
