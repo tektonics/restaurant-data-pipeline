@@ -22,8 +22,6 @@ RESTAURANT_SCHEMA = {
         'phone',
         'website',
         'google_maps_link',
-        'instagram_name',
-        'instagram_url'
     ]
 }
 

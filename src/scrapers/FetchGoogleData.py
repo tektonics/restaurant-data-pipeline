@@ -55,26 +55,7 @@ def get_element_text(driver, selectors, default='Not available'):
     return default
 
 def fetch_google_maps_data(url, driver=None):
-    data = {
-        'Star Rating': 'Not available',
-        'Number of Reviews': 'Not available',
-        'Restaurant Category': 'Not available',
-        'Price Range': 'Not available',
-        'Latitude': 'Not available',
-        'Longitude': 'Not available',
-        'Accessibility': 'Not available',
-        'Service options': 'Not available',
-        'Highlights': 'Not available',
-        'Popular for': 'Not available',
-        'Offerings': 'Not available',
-        'Dining options': 'Not available',
-        'Amenities': 'Not available',
-        'Atmosphere': 'Not available',
-        'Planning': 'Not available',
-        'Payments': 'Not available',
-        'Parking': 'Not available',
-        'Doesnt Offer': 'Not available'
-    }
+    data = {field: 'Not available' for field in EXPECTED_GOOGLE_FIELDS}
 
     try:
         driver.get(url)

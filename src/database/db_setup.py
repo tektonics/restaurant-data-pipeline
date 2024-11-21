@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from ..config.database_config import DATABASE, RESTAURANT_SCHEMA
+from ..config.config import CSV_FIELDNAMES
 
 logging.basicConfig(
     filename=DATABASE['log_path'],
@@ -14,7 +15,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def backup_database():
-    """Create a backup of the database"""
     if DATABASE['path'].exists():
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         backup_file = DATABASE['backup_path'] / f'restaurants_backup_{timestamp}.db'
@@ -30,44 +30,26 @@ def backup_database():
             raise
 
 def init_database():
-    """Initialize the database with tables"""
     try:
         conn = sqlite3.connect(DATABASE['path'])
         cursor = conn.cursor()
 
-        cursor.execute('''
+        column_definitions = []
+        for field in CSV_FIELDNAMES:
+            field_name = field.lower().replace(' ', '_')
+            column_definitions.append(f"{field_name} TEXT")
+
+        base_columns = """
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        """
+        
+        all_columns = f"{base_columns}, {', '.join(column_definitions)}"
+
+        cursor.execute(f'''
             CREATE TABLE IF NOT EXISTS restaurants (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                restaurant_name TEXT NOT NULL,
-                restaurant_description TEXT,
-                address TEXT,
-                phone TEXT,
-                website TEXT,
-                google_maps_link TEXT,
-                cleaned_address TEXT,
-                city TEXT,
-                state TEXT,
-                zip TEXT,
-                star_rating REAL,
-                number_of_reviews INTEGER,
-                restaurant_category TEXT,
-                price_range TEXT,
-                latitude REAL,
-                longitude REAL,
-                accessibility TEXT,
-                service_options TEXT,
-                highlights TEXT,
-                popular_for TEXT,
-                offerings TEXT,
-                dining_options TEXT,
-                amenities TEXT,
-                atmosphere TEXT,
-                planning TEXT,
-                payments TEXT,
-                parking TEXT,
-                doesnt_offer TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                {all_columns}
             )
         ''')
 

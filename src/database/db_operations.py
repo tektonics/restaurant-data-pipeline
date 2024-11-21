@@ -1,5 +1,6 @@
 from pathlib import Path
 from ..config.database_config import DATABASE, RESTAURANT_SCHEMA
+from ..config.config import CSV_FIELDNAMES
 import sqlite3
 import pandas as pd
 import logging
@@ -36,34 +37,8 @@ class RestaurantDB:
         """Insert data from DataFrame into database"""
         try:
             field_mapping = {
-                'restaurant_name': 'Restaurant Name',
-                'restaurant_description': 'Restaurant Description',
-                'address': 'Address',
-                'phone': 'Phone',
-                'website': 'Website',
-                'google_maps_link': 'Google Maps Link',
-                'cleaned_address': 'Cleaned Address',
-                'city': 'City',
-                'state': 'State',
-                'zip': 'Zip',
-                'star_rating': 'Star Rating',
-                'number_of_reviews': 'Number of Reviews',
-                'restaurant_category': 'Restaurant Category',
-                'price_range': 'Price Range',
-                'latitude': 'Latitude',
-                'longitude': 'Longitude',
-                'accessibility': 'Accessibility',
-                'service_options': 'Service options',
-                'highlights': 'Highlights',
-                'popular_for': 'Popular for',
-                'offerings': 'Offerings',
-                'dining_options': 'Dining options',
-                'amenities': 'Amenities',
-                'atmosphere': 'Atmosphere',
-                'planning': 'Planning',
-                'payments': 'Payments',
-                'parking': 'Parking',
-                'doesnt_offer': 'Doesnt Offer'
+                field.lower().replace(' ', '_'): field 
+                for field in CSV_FIELDNAMES
             }
 
             for _, row in df.iterrows():

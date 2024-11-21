@@ -1,7 +1,6 @@
 import pandas as pd
 import re
-from ..config.config import RAW_RESTAURANTS_CSV, CLEANED_RESTAURANTS_CSV
-from ..config.config import state_abbreviations
+from ..config.config import RAW_RESTAURANTS_CSV, CLEANED_RESTAURANTS_CSV, state_abbreviations
 
 def clean_and_split_address(address):
     if not address:

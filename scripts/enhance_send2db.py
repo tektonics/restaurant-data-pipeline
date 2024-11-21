@@ -21,8 +21,7 @@ def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
     driver = None
     try:
         chrome_options = Options()
-        for option in CHROME_OPTIONS:
-            chrome_options.add_argument(option)
+        chrome_options.add_arguments(CHROME_OPTIONS)
             
         try:
             # First try using system ChromeDriver

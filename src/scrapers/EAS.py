@@ -12,7 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
-from ..config.config import EATER_CONFIG, CHROME_OPTIONS, RAW_RESTAURANTS_CSV, CLEANED_RESTAURANTS_CSV, DEFAULT_VALUES
+from ..config.config import EATER_CONFIG, CHROME_OPTIONS, RAW_RESTAURANTS_CSV, CLEANED_RESTAURANTS_CSV, DEFAULT_VALUES, REQUIRED_RESTAURANT_FIELDS
 from contextlib import contextmanager
 import pandas as pd
 from threading import Timer
@@ -26,8 +26,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-user_agents = EATER_CONFIG['user_agents']
-
 POST_PROCESS_INTERVAL = 300
 last_post_process_time = 0
 
@@ -36,7 +34,7 @@ def get_scraping_driver():
     """Get a configured WebDriver instance for scraping"""
     driver = None
     try:
-        driver = create_driver([f"user-agent={random.choice(user_agents)}"])
+        driver = create_driver([f"user-agent={random.choice(EATER_CONFIG['user_agents'])}"])
         yield driver
     finally:
         if driver:
@@ -140,10 +138,8 @@ def scrape_eater_page(url, output_csv):
 
 def write_to_raw_csv(entry, output_csv):
     """Write a single entry to the raw CSV file"""
-    fieldnames = [
-        'Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 
-        'Website', 'Google Maps Link', 'Embedded Links', 'Venue ID'
-    ]
+    fieldnames = REQUIRED_RESTAURANT_FIELDS + ['Restaurant Description', 'Phone', 
+        'Website', 'Google Maps Link', 'Embedded Links', 'Venue ID']
     
     with open(output_csv, 'a', newline='', encoding='utf-8') as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -188,10 +184,9 @@ def clean_and_write_entry(entry, cleaned_csv):
     if not cleaned_entry['Zip']:
         return
     
-    fieldnames = [
-        'Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 
-        'Website', 'Google Maps Link', 'Cleaned Address', 'City', 'State', 
-        'Zip', 'Embedded Links', 'Venue ID'
+    fieldnames = REQUIRED_RESTAURANT_FIELDS + [
+        'Restaurant Description', 'Phone', 'Website', 'Google Maps Link',
+        'Cleaned Address', 'City', 'State', 'Zip', 'Embedded Links', 'Venue ID'
     ]
     
     with open(cleaned_csv, 'a', newline='', encoding='utf-8') as file:
@@ -247,7 +242,7 @@ def scrape_eater_archives():
                 try:
                     response = requests.get(
                         page_url, 
-                        headers={"User-Agent": random.choice(user_agents)},
+                        headers={"User-Agent": random.choice(EATER_CONFIG['user_agents'])},
                         timeout=30
                     )
                     response.raise_for_status()
