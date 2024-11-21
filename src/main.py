@@ -8,7 +8,13 @@ from src.config.config import (
     ENHANCED_RESTAURANTS_CSV, 
     CHROME_OPTIONS,
     CSV_FIELDNAMES,
-    PARALLEL_PROCESSING_CONFIG
+    PARALLEL_PROCESSING_CONFIG,
+    WEBDRIVER_CONFIG,
+    TIMEOUT_CONFIG,
+    MAX_RETRIES,
+    RETRY_DELAY,
+    RATE_LIMITS,
+    DEFAULT_VALUES
 )
 import pandas as pd
 import logging
@@ -46,11 +52,13 @@ def process_batch(batch_df, chunk_id, output_file, fieldnames):
     driver = None
     try:
         chrome_options = Options()
-        for option in CHROME_OPTIONS:
+        for option in WEBDRIVER_CONFIG['options']:
             chrome_options.add_argument(option)
             
         try:
             driver = webdriver.Chrome(options=chrome_options)
+            driver.implicitly_wait(WEBDRIVER_CONFIG['implicit_wait'])
+            driver.set_page_load_timeout(WEBDRIVER_CONFIG['page_load_timeout'])
         except Exception as e:
             logger.warning(f"System ChromeDriver failed, trying alternative path: {e}")
             try:
@@ -134,7 +142,8 @@ def main():
         try:
             service = Service()
             options = webdriver.ChromeOptions()
-            options.add_argument('--headless')
+            for option in WEBDRIVER_CONFIG['options']:
+                options.add_argument(option)
             driver = webdriver.Chrome(service=service, options=options)
             driver.quit()
             logger.info("WebDriver setup successful")
