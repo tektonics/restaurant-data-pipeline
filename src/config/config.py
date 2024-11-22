@@ -104,8 +104,6 @@ DEFAULT_VALUES = {
     'phone': "Phone Not Found",
     'website': "Website Not Found",
     'google_maps': "Google Maps Link Not Found",
-    'instagram_name': "Instagram Name Not Found",
-    'instagram_url': "Instagram URL Not Found",
     'venue_id': "Venue ID Not Found"
 }
 
