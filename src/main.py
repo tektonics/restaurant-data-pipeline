@@ -32,6 +32,7 @@ from urllib.parse import quote
 import csv
 import math
 from selenium.webdriver.chrome.options import Options
+from scripts.send2db import load_csv_to_database
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -177,14 +178,12 @@ def main():
         logger.info("Initializing database...")
         init_database()
         
-        db = RestaurantDB()
-        db.connect()
-        
-        logger.info("Populating database...")
+        logger.info("Loading data to database...")
         if os.path.exists(ENHANCED_RESTAURANTS_CSV):
-            enhanced_df = pd.read_csv(ENHANCED_RESTAURANTS_CSV)
-            db.insert_restaurant_data(enhanced_df)
-            logger.info("Process completed successfully!")
+            if load_csv_to_database():
+                logger.info("Database loading completed successfully")
+            else:
+                logger.warning("Database loading failed")
         else:
             logger.warning("Enhanced restaurants CSV not found. Database population skipped.")
         

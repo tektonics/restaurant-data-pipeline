@@ -1,39 +1,47 @@
 import pandas as pd
-import logging
-from src.database import RestaurantDB, init_database
-from src.config.config import ENHANCED_RESTAURANTS_CSV
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import sys
+from src.database import RestaurantDB
+from pathlib import Path
 
 def load_csv_to_database():
+    print("Starting database loading process...")  # Basic print statement
+    
     try:
-        if not ENHANCED_RESTAURANTS_CSV.exists():
-            raise FileNotFoundError(f"CSV file not found at {ENHANCED_RESTAURANTS_CSV}")
+        enhanced_csv = Path("data/processed/cleaned_restaurants_enhanced.csv")
+        print(f"Looking for CSV at: {enhanced_csv.absolute()}")
         
-        init_database()
-        
-        logger.info("Reading CSV file...")
-        df = pd.read_csv(ENHANCED_RESTAURANTS_CSV)
-        logger.info(f"Found {len(df)} records in CSV")
-
+        if not enhanced_csv.exists():
+            print(f"ERROR: CSV file not found at: {enhanced_csv.absolute()}")
+            return False
+            
+        print("CSV found. Attempting database connection...")
         db = RestaurantDB()
         try:
             db.connect()
-            logger.info("Connected to database")
-            
-            # Insert data
-            logger.info("Inserting data into database...")
-            db.insert_restaurant_data(df)
-            logger.info("Data insertion complete")
-            
+            db.create_tables()            
+            final_df = pd.read_csv(enhanced_csv)
+            if final_df.empty:
+                print("ERROR: CSV file is empty")
+                return False
+                
+            print(f"Found {len(final_df)} records to insert")
+            db.insert_restaurant_data(final_df)
+            print("Data successfully loaded into database")
+            return True
         finally:
             db.close()
-            logger.info("Database connection closed")
-
+                
     except Exception as e:
-        logger.error(f"Error during data loading: {e}")
+        print(f"ERROR: {str(e)}", file=sys.stderr)
         raise
 
 if __name__ == "__main__":
-    load_csv_to_database()
+    print("Script is starting...")  # Verify script is running
+    try:
+        success = load_csv_to_database()
+        if not success:
+            print("Database loading process failed or was skipped")
+    except Exception as e:
+        print(f"Fatal error: {str(e)}", file=sys.stderr)
+        sys.exit(1)
+    print("Script completed")

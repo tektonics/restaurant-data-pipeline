@@ -54,8 +54,8 @@ EXPECTED_GOOGLE_FIELDS = [
 EATER_CONFIG = {
     'base_url': "https://www.eater.com/maps/archives",
     'page_range': {
-        'start': 1,
-        'end': 1
+        'start': 2,
+        'end': 2
     },
     'user_agents': [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
@@ -144,10 +144,11 @@ logging.getLogger('selenium').setLevel(logging.ERROR)
 CSV_FIELDNAMES = [
     'Restaurant Name', 'Restaurant Description', 'Address', 'Phone', 'Website',
     'Google Maps Link', 'Cleaned Address', 'City', 'State', 'Zip', 'Embedded Links', 
-    'Venue ID','Star Rating', 'Number of Reviews', 'Restaurant Category', 'Price Range',
+    'Venue ID', 'Star Rating', 'Number of Reviews', 'Restaurant Category', 'Price Range',
     'Latitude', 'Longitude', 'Accessibility', 'Service options', 'Highlights',
     'Popular for', 'Offerings', 'Dining options', 'Amenities', 'Atmosphere',
-    'Planning', 'Payments', 'Parking', 'Doesnt Offer'
+    'Planning', 'Payments', 'Parking', 'Pets', 'Children', 
+    'Crowd', 'From the business', 'Doesnt Offer',
 ]
 
 PARALLEL_PROCESSING_CONFIG = {

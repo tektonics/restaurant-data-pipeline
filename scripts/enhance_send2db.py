@@ -12,28 +12,61 @@ from src.database.db_operations import RestaurantDB
 from src.config.config import CHROME_OPTIONS, CSV_FIELDNAMES, PARALLEL_PROCESSING_CONFIG
 from urllib.parse import quote
 import csv
+import os
+import time
+from scripts.send2db import load_csv_to_database
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def check_enhanced_csv():
+    enhanced_csv = Path("data/processed/cleaned_restaurants_enhanced.csv")
+    if enhanced_csv.exists():
+        logger.info("Enhanced CSV already exists. Loading to database...")
+    
+
+def create_driver():
+    options = Options()
+    for option in CHROME_OPTIONS:
+        options.add_argument(option)
+    
+    for attempt in range(3):
+        try:
+            driver = webdriver.Chrome(options=options)
+            logger.info("ChromeDriver initialized successfully")
+            return driver
+        except Exception as e1:
+            try:
+                service = Service('/usr/bin/chromedriver')
+                driver = webdriver.Chrome(service=service, options=options)
+                logger.info("ChromeDriver initialized with explicit path")
+                return driver
+            except Exception as e2:
+                try:
+                    service = Service(ChromeDriverManager().install())
+                    driver = webdriver.Chrome(service=service, options=options)
+                    logger.info("ChromeDriver initialized with ChromeDriverManager")
+                    return driver
+                except Exception as e3:
+                    if attempt == 2:
+                        raise Exception(f"Failed to initialize ChromeDriver: {e1}\n{e2}\n{e3}")
+                    time.sleep(2 ** attempt)
+                    continue
+    return None
+
 def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
     driver = None
     try:
-        chrome_options = Options()
-        chrome_options.add_arguments(CHROME_OPTIONS)
-            
-        try:
-            # First try using system ChromeDriver
-            driver = webdriver.Chrome(options=chrome_options)
-        except Exception as e:
-            logger.warning(f"System ChromeDriver failed, trying alternative path: {e}")
+        for attempt in range(3):
             try:
-                # Try explicit path to ChromeDriver
-                service = Service('/usr/bin/chromedriver')
-                driver = webdriver.Chrome(service=service, options=chrome_options)
+                driver = create_driver()
+                if driver:
+                    break
+                time.sleep(2 ** attempt) 
             except Exception as e:
-                logger.error(f"All ChromeDriver attempts failed: {e}")
-                raise
+                logger.warning(f"Attempt {attempt + 1} failed to create driver: {e}")
+                if attempt == 2: 
+                    raise
         
         total_in_chunk = len(chunk_df)
         
@@ -89,48 +122,30 @@ def write_row_to_csv(row_data, output_file, fieldnames):
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writerow(row_data)
 
+def verify_chromedriver(path):
+    if not os.path.isfile(path):
+        return False
+    if not os.access(path, os.X_OK):
+        try:
+            os.chmod(path, 0o755)
+            return True
+        except Exception:
+            return False
+    return True
+
 def main():
     try:
-        input_csv = Path("data/raw/cleaned_restaurants.csv")
         enhanced_csv = Path("data/processed/cleaned_restaurants_enhanced.csv")
-        enhanced_csv.parent.mkdir(parents=True, exist_ok=True)
-        
-        if not enhanced_csv.exists():
-            with open(enhanced_csv, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=CSV_FIELDNAMES)
-                writer.writeheader()
-        
-        df = pd.read_csv(input_csv)
-        total_rows = len(df)
-        
-        num_workers = PARALLEL_PROCESSING_CONFIG['num_workers']
-        chunk_size = math.ceil(total_rows / num_workers)
-        chunks = [df[i:i + chunk_size] for i in range(0, total_rows, chunk_size)]
-        
-        logger.info(f"Processing {total_rows} restaurants with {num_workers} workers")
-        
-        with ThreadPoolExecutor(max_workers=num_workers) as executor:
-            futures = [
-                executor.submit(process_chunk, chunk, i, enhanced_csv, CSV_FIELDNAMES)
-                for i, chunk in enumerate(chunks)
-            ]
-            
-            for future in futures:
-                future.result()  
-        
-        logger.info("All chunks processed. Loading data into database...")
-        
-        db = RestaurantDB()
-        try:
-            db.connect()
-            db.create_tables()
-            
-            final_df = pd.read_csv(enhanced_csv)
-            db.insert_restaurant_data(final_df)
-            logger.info("Data successfully loaded into database")
-        finally:
-            db.close()
-            
+        if enhanced_csv.exists():
+            logger.info("Enhanced CSV already exists. Loading to database...")
+            if load_csv_to_database():
+                logger.info("Database loading completed successfully")
+                return
+            else:
+                logger.error("Database loading failed")
+                return
+        logger.info("Enhanced CSV not found. Exiting without processing.")
+        return            
     except Exception as e:
         logger.error(f"Error during processing: {e}")
         raise

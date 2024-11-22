@@ -4,7 +4,11 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 DATABASE = {
-    'path': PROJECT_ROOT / 'data' / 'database' / 'restaurants.db',
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'port': os.getenv('DB_PORT', '5432'),
+    'database': os.getenv('DB_NAME', 'restaurants_db'),
+    'user': os.getenv('DB_USER', 'postgres'),
+    'password': os.getenv('DB_PASSWORD', ''),
     'backup_path': PROJECT_ROOT / 'data' / 'database' / 'backups',
     'log_path': PROJECT_ROOT / 'logs' / 'database.log'
 }
@@ -23,5 +27,4 @@ RESTAURANT_SCHEMA = {
     ]
 }
 
-for path in [DATABASE['path'].parent, DATABASE['backup_path'], DATABASE['log_path'].parent]:
-    path.mkdir(parents=True, exist_ok=True)
+DATABASE['backup_path'].mkdir(parents=True, exist_ok=True)
