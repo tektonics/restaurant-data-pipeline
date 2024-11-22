@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 from src.utils.directory_manager import ensure_project_directories
 
-# Create all necessary project directories
 ensure_project_directories()
 
 setup(

@@ -146,7 +146,6 @@ def fetch_google_maps_data(url, driver=None):
         return data
 
 def extract_attributes(section):
-    """Extract attributes from a section, handling both available and unavailable items"""
     available_options = []
     unavailable_options = []
     
@@ -182,7 +181,6 @@ def extract_attributes(section):
     return available_options, unavailable_options
 
 def process_csv(input_file, output_file):
-    """Process the CSV file and enhance with Google Maps data"""
     driver = None
     try:
         driver = create_driver()

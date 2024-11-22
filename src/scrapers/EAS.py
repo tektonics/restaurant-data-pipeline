@@ -148,7 +148,6 @@ def write_to_raw_csv(entry, output_csv):
         writer.writerow(entry)
 
 def post_process_cleaned_data():
-    """Post-process the cleaned CSV to fill missing cities"""
     try:
         
         df = pd.read_csv(CLEANED_RESTAURANTS_CSV)
@@ -199,9 +198,7 @@ def clean_and_write_entry(entry, cleaned_csv):
         post_process_cleaned_data()
 
 def is_duplicate_entry(csv_file, new_entry):
-    """Check if a restaurant entry already exists in the CSV file"""
-    try:
-        
+    try:        
         if not os.path.exists(csv_file):
             return False
             
@@ -219,7 +216,6 @@ def is_duplicate_entry(csv_file, new_entry):
     return False
 
 def scrape_eater_archives():
-    """Main scraping function"""
     global last_post_process_time
     last_post_process_time = time.time()
     

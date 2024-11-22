@@ -28,13 +28,11 @@ class RestaurantDB:
             raise
 
     def close(self):
-        """Close the database connection"""
         if self.conn:
             self.conn.close()
             logger.info("Database connection closed")
 
     def insert_restaurant_data(self, df: pd.DataFrame):
-        """Insert data from DataFrame into database"""
         try:
             field_mapping = {
                 field.lower().replace(' ', '_'): field 
@@ -66,7 +64,6 @@ class RestaurantDB:
             raise
 
     def get_restaurant_by_name(self, name: str) -> Dict[str, Any]:
-        """Retrieve restaurant data by name"""
         try:
             self.cursor.execute('''
                 SELECT * FROM restaurants WHERE restaurant_name = ?
@@ -95,7 +92,6 @@ class RestaurantDB:
             raise
 
     def update_restaurant(self, restaurant_id: int, data: Dict[str, Any]):
-        """Update restaurant data"""
         try:
             core_fields = {k: v for k, v in data.items() if k in RESTAURANT_SCHEMA['core_fields']}
             if core_fields:

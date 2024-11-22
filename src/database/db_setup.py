@@ -1,5 +1,3 @@
-"""Database setup and initialization"""
-
 import sqlite3
 import logging
 from pathlib import Path

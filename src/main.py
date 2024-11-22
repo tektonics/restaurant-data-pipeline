@@ -48,7 +48,6 @@ def run_with_timeout(timeout_duration=PARALLEL_PROCESSING_CONFIG['timeout_second
     return timer
 
 def process_batch(batch_df, chunk_id, output_file, fieldnames):
-    """Process a batch of restaurants with its own WebDriver instance"""
     driver = None
     try:
         chrome_options = Options()
@@ -103,7 +102,6 @@ def process_batch(batch_df, chunk_id, output_file, fieldnames):
                 logger.error(f"Error closing driver: {str(e)}")
 
 def is_row_processed(output_file, restaurant_name, address):
-    """Check if a row has already been processed"""
     if not Path(output_file).exists():
         return False
     
@@ -119,7 +117,6 @@ def is_row_processed(output_file, restaurant_name, address):
     return False
 
 def process_with_parallel(df, output_file, fieldnames):
-    """Enhanced parallel processing with better error handling and progress tracking"""
     total_rows = len(df)
     num_workers = PARALLEL_PROCESSING_CONFIG['num_workers']
     chunk_size = math.ceil(total_rows / num_workers)
@@ -138,7 +135,7 @@ def process_with_parallel(df, output_file, fieldnames):
 
 def main():
     try:
-        # WebDriver setup check
+
         try:
             service = Service()
             options = webdriver.ChromeOptions()
@@ -151,7 +148,6 @@ def main():
             logger.error(f"WebDriver setup failed: {e}")
             raise
 
-        # Set up timeout
         if platform.system() != 'Windows':
             import signal
             signal.signal(signal.SIGALRM, timeout_handler)
@@ -159,7 +155,6 @@ def main():
         else:
             timer = run_with_timeout()
         
-        # Initialize enhanced CSV if it doesn't exist
         if not os.path.exists(ENHANCED_RESTAURANTS_CSV):
             with open(ENHANCED_RESTAURANTS_CSV, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=CSV_FIELDNAMES)

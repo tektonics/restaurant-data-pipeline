@@ -17,7 +17,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
-    """Process a chunk of restaurants with its own WebDriver instance"""
     driver = None
     try:
         chrome_options = Options()
@@ -71,7 +70,6 @@ def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
                 logger.error(f"Error closing driver: {str(e)}")
 
 def is_row_processed(output_file, restaurant_name, address):
-    """Check if a row has already been processed"""
     if not Path(output_file).exists():
         return False
     
@@ -87,7 +85,6 @@ def is_row_processed(output_file, restaurant_name, address):
     return False
 
 def write_row_to_csv(row_data, output_file, fieldnames):
-    """Write a single row to CSV with proper locking"""
     with open(output_file, 'a', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writerow(row_data)
