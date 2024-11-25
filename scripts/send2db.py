@@ -4,8 +4,7 @@ from src.database import RestaurantDB
 from pathlib import Path
 
 def load_csv_to_database():
-    print("Starting database loading process...")  # Basic print statement
-    
+    print("Starting database loading process...")
     try:
         enhanced_csv = Path("data/processed/cleaned_restaurants_enhanced.csv")
         print(f"Looking for CSV at: {enhanced_csv.absolute()}")
@@ -23,9 +22,18 @@ def load_csv_to_database():
             if final_df.empty:
                 print("ERROR: CSV file is empty")
                 return False
-                
-            print(f"Found {len(final_df)} records to insert")
-            db.insert_restaurant_data(final_df)
+            
+            valid_df = final_df.dropna(subset=['Restaurant Name'])
+            
+            if len(valid_df) < len(final_df):
+                print(f"Filtered out {len(final_df) - len(valid_df)} invalid records")
+            
+            print(f"Found {len(valid_df)} valid records to insert")
+            
+            valid_df = valid_df.replace(r'^\s*$', None, regex=True)
+            valid_df = valid_df.replace('Not available', None)
+            
+            db.insert_restaurant_data(valid_df)
             print("Data successfully loaded into database")
             return True
         finally:
@@ -36,12 +44,4 @@ def load_csv_to_database():
         raise
 
 if __name__ == "__main__":
-    print("Script is starting...")  # Verify script is running
-    try:
-        success = load_csv_to_database()
-        if not success:
-            print("Database loading process failed or was skipped")
-    except Exception as e:
-        print(f"Fatal error: {str(e)}", file=sys.stderr)
-        sys.exit(1)
-    print("Script completed")
+    load_csv_to_database()

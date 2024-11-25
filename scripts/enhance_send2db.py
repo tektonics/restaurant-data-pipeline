@@ -2,70 +2,37 @@ import logging
 from pathlib import Path
 import pandas as pd
 import math
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+from src.utils.webdriver_manager import WebDriverManager
 from concurrent.futures import ThreadPoolExecutor
 from src.scrapers.FetchGoogleData import fetch_google_maps_data
 from src.database.db_operations import RestaurantDB
-from src.config.config import CHROME_OPTIONS, CSV_FIELDNAMES, PARALLEL_PROCESSING_CONFIG
+from src.config.config import (
+    CHROME_OPTIONS, CSV_FIELDNAMES, 
+    PARALLEL_PROCESSING_CONFIG, CLEANED_RESTAURANTS_CSV, 
+    MISSING_RESTAURANTS_CSV, ENHANCED_RESTAURANTS_CSV
+)
 from urllib.parse import quote
 import csv
 import os
 import time
 from scripts.send2db import load_csv_to_database
+from src.utils.parallel_processor import process_with_parallel
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def check_enhanced_csv():
-    enhanced_csv = Path("data/processed/cleaned_restaurants_enhanced.csv")
-    if enhanced_csv.exists():
-        logger.info("Enhanced CSV already exists. Loading to database...")
-    
-
-def create_driver():
-    options = Options()
-    for option in CHROME_OPTIONS:
-        options.add_argument(option)
-    
-    for attempt in range(3):
-        try:
-            driver = webdriver.Chrome(options=options)
-            logger.info("ChromeDriver initialized successfully")
-            return driver
-        except Exception as e1:
-            try:
-                service = Service('/usr/bin/chromedriver')
-                driver = webdriver.Chrome(service=service, options=options)
-                logger.info("ChromeDriver initialized with explicit path")
-                return driver
-            except Exception as e2:
-                try:
-                    service = Service(ChromeDriverManager().install())
-                    driver = webdriver.Chrome(service=service, options=options)
-                    logger.info("ChromeDriver initialized with ChromeDriverManager")
-                    return driver
-                except Exception as e3:
-                    if attempt == 2:
-                        raise Exception(f"Failed to initialize ChromeDriver: {e1}\n{e2}\n{e3}")
-                    time.sleep(2 ** attempt)
-                    continue
-    return None
-
-def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
+def process_chunk(chunk_df, chunk_id, fieldnames):
     driver = None
     try:
         for attempt in range(3):
             try:
-                driver = create_driver()
+                driver = WebDriverManager.create_driver()
                 if driver:
                     break
-                time.sleep(2 ** attempt) 
+                time.sleep(2 ** attempt)
             except Exception as e:
                 logger.warning(f"Attempt {attempt + 1} failed to create driver: {e}")
-                if attempt == 2: 
+                if attempt == 2:
                     raise
         
         total_in_chunk = len(chunk_df)
@@ -82,25 +49,21 @@ def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
                 google_data = fetch_google_maps_data(google_maps_url, driver)
                 processed_row = {**row.to_dict(), **google_data}
                 
-                with open(output_file, 'a', newline='', encoding='utf-8') as f:
+                with open(ENHANCED_RESTAURANTS_CSV, 'a', newline='', encoding='utf-8') as f:
                     writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    if f.tell() == 0:
+                        writer.writeheader()
                     writer.writerow(processed_row)
                     
                 logger.info(f"Successfully processed and saved: {row['Restaurant Name']}")
                 
             except Exception as e:
                 logger.error(f"Error processing row {idx} in chunk {chunk_id}: {str(e)}")
-                with open(output_file, 'a', newline='', encoding='utf-8') as f:
-                    writer = csv.DictWriter(f, fieldnames=fieldnames)
-                    writer.writerow(row.to_dict())
                 continue
                 
     finally:
         if driver:
-            try:
-                driver.quit()
-            except Exception as e:
-                logger.error(f"Error closing driver: {str(e)}")
+            driver.quit()
 
 def is_row_processed(output_file, restaurant_name, address):
     if not Path(output_file).exists():
@@ -135,20 +98,30 @@ def verify_chromedriver(path):
 
 def main():
     try:
-        enhanced_csv = Path("data/processed/cleaned_restaurants_enhanced.csv")
-        if enhanced_csv.exists():
-            logger.info("Enhanced CSV already exists. Loading to database...")
-            if load_csv_to_database():
-                logger.info("Database loading completed successfully")
-                return
-            else:
-                logger.error("Database loading failed")
-                return
-        logger.info("Enhanced CSV not found. Exiting without processing.")
-        return            
+        if not Path(CLEANED_RESTAURANTS_CSV).exists():
+            logger.warning(f"Cleaned restaurants CSV file not found at: {CLEANED_RESTAURANTS_CSV}")
+            return
+        
+        if not Path(ENHANCED_RESTAURANTS_CSV).exists():
+            with open(ENHANCED_RESTAURANTS_CSV, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.DictWriter(f, fieldnames=CSV_FIELDNAMES)
+                writer.writeheader()
+        
+        df = pd.read_csv(CLEANED_RESTAURANTS_CSV)
+        process_with_parallel(df, ENHANCED_RESTAURANTS_CSV, CSV_FIELDNAMES)
+        
+        logger.info("Enhancement process completed")
+        
+        if load_csv_to_database():
+            logger.info("Database loading completed successfully")
+        else:
+            logger.error("Database loading failed")
+            
     except Exception as e:
         logger.error(f"Error during processing: {e}")
         raise
+    finally:
+        WebDriverManager.cleanup()
 
 if __name__ == "__main__":
     main()

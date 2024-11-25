@@ -2,9 +2,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from itertools import islice
 from src.scrapers.FetchGoogleData import fetch_google_maps_data
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+from src.utils.webdriver_manager import WebDriverManager
 import pandas as pd
 import csv
 from urllib.parse import quote
@@ -13,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def process_with_parallel(df, output_file, fieldnames):
     """Enhanced parallel processing with better error handling and progress tracking"""
-    chunk_size = 100  # Adjust the chunk size as needed
+    chunk_size = -(-len(df) // 4)
     chunks = [df[i:i + chunk_size] for i in range(0, len(df), chunk_size)]
     
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -32,23 +30,7 @@ def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
     """Process a chunk of restaurants with its own WebDriver instance"""
     driver = None
     try:
-        chrome_options = Options()
-        CHROME_OPTIONS = ['--headless', '--disable-gpu', '--no-sandbox']  # Add your desired Chrome options here
-        for option in CHROME_OPTIONS:
-            chrome_options.add_argument(option)
-            
-        try:
-            # First try using system ChromeDriver
-            driver = webdriver.Chrome(options=chrome_options)
-        except Exception as e:
-            logger.warning(f"System ChromeDriver failed, trying alternative path: {e}")
-            try:
-                # Try explicit path to ChromeDriver
-                service = Service('/usr/bin/chromedriver')
-                driver = webdriver.Chrome(service=service, options=chrome_options)
-            except Exception as e:
-                logger.error(f"All ChromeDriver attempts failed: {e}")
-                raise
+        driver = WebDriverManager.create_driver()
         
         total_in_chunk = len(chunk_df)
         
@@ -79,7 +61,4 @@ def process_chunk(chunk_df, chunk_id, output_file, fieldnames):
                 
     finally:
         if driver:
-            try:
-                driver.quit()
-            except Exception as e:
-                logger.error(f"Error closing driver: {str(e)}")
+            driver.quit()

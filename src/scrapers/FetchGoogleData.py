@@ -2,8 +2,6 @@ import csv
 import time
 import random
 import re
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -24,7 +22,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from urllib.parse import quote
 import pandas as pd
 import os
-from src.utils.webdriver_manager import create_driver
+from src.utils.webdriver_manager import WebDriverManager
 from src.utils.csv_handler import ensure_csv_exists, write_row
 
 logging.basicConfig(level=logging.INFO)
@@ -183,7 +181,7 @@ def extract_attributes(section):
 def process_csv(input_file, output_file):
     driver = None
     try:
-        driver = create_driver()
+        driver = WebDriverManager.create_driver()
         df = pd.read_csv(input_file)
         
         ensure_csv_exists(output_file, list(df.columns) + list(EXPECTED_GOOGLE_FIELDS))
@@ -209,10 +207,7 @@ def process_csv(input_file, output_file):
                 
     finally:
         if driver:
-            try:
-                driver.quit()
-            except Exception as e:
-                logger.error(f"Error closing driver: {e}")
+            driver.quit()
 
 def process_google_data(input_file=CLEANED_RESTAURANTS_CSV, output_file=ENHANCED_RESTAURANTS_CSV):
     process_csv(input_file, output_file)

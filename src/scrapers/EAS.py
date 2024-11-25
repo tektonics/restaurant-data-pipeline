@@ -18,7 +18,7 @@ import pandas as pd
 from threading import Timer
 from ..data_processing.cleanAddrRestaurants import fill_missing_city, clean_and_split_address
 from ..utils.cleaning_monitor import log_cleaning_progress
-from src.utils.webdriver_manager import create_driver
+from src.utils.webdriver_manager import WebDriverManager
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,30 +29,15 @@ logger = logging.getLogger(__name__)
 POST_PROCESS_INTERVAL = 300
 last_post_process_time = 0
 
-@contextmanager
-def get_scraping_driver():
-    """Get a configured WebDriver instance for scraping"""
-    driver = None
-    try:
-        driver = create_driver([f"user-agent={random.choice(EATER_CONFIG['user_agents'])}"])
-        yield driver
-    finally:
-        if driver:
-            try:
-                driver.quit()
-            except:
-                pass
-            time.sleep(3)
-
-def scrape_eater_page(url, output_csv):
+def scrape_eater_page(url, output_csv, driver):
     logger.info(f"Attempting to load page: {url}")
     
-    with get_scraping_driver() as driver:
+    for attempt in range(2):  # Try twice at most
         try:
+            driver.set_page_load_timeout(15)  # 15 second timeout
             driver.get(url)
-            time.sleep(3)
             
-            wait = WebDriverWait(driver, 15)  
+            wait = WebDriverWait(driver, 3)  
             wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'c-mapstack__card')))
             
             soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -69,7 +54,6 @@ def scrape_eater_page(url, output_csv):
                     description_paragraphs = description_container.find_all('p')
                     description = ''.join([p.text.strip() for p in description_paragraphs])
                     
-                    # Extract all links from the description
                     embedded_links = []
                     for p in description_paragraphs:
                         links = p.find_all('a')
@@ -83,7 +67,6 @@ def scrape_eater_page(url, output_csv):
                     description = "Description Not Found"
                     embedded_links = []
                 
-                # Get Venue ID
                 venue_id = "Venue ID Not Found"
                 card_hed = entry.find('div', class_='c-mapstack__card-hed')
                 if card_hed and 'data-venue-id' in card_hed.attrs:
@@ -127,17 +110,21 @@ def scrape_eater_page(url, output_csv):
                         
                         clean_and_write_entry(new_entry, CLEANED_RESTAURANTS_CSV)
             
-            return  
+            return
             
-        except WebDriverException as e:
-            logger.error(f"Error scraping {url}: {str(e)}")
-            raise
         except Exception as e:
-            logger.error(f"Unexpected error scraping {url}: {str(e)}")
-            raise
+            logger.warning(f"Attempt {attempt + 1} failed for {url}: {str(e)}")
+            if attempt == 0:  # Only refresh and retry once
+                try:
+                    driver.refresh()
+                    time.sleep(1)
+                except:
+                    pass
+            else:
+                logger.error(f"Skipping {url} after failed attempts")
+                return  # Skip this article and move on
 
 def write_to_raw_csv(entry, output_csv):
-    """Write a single entry to the raw CSV file"""
     fieldnames = REQUIRED_RESTAURANT_FIELDS + ['Restaurant Description', 'Phone', 
         'Website', 'Google Maps Link', 'Embedded Links', 'Venue ID']
     
@@ -226,7 +213,10 @@ def scrape_eater_archives():
     start_page = EATER_CONFIG['page_range']['start']
     end_page = EATER_CONFIG['page_range']['end']
     
+    driver = None
     try:
+        driver = WebDriverManager.create_driver()
+        
         for page in range(start_page, end_page + 1):
             logger.info(f"Processing archive page {page} (range: {start_page}-{end_page})")
             
@@ -252,7 +242,6 @@ def scrape_eater_archives():
             
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # Get all article links
             entries = soup.find_all('div', class_='c-compact-river__entry')
             if not entries:
                 logger.warning(f"No entries found on page {page}. Stopping pagination.")
@@ -265,7 +254,7 @@ def scrape_eater_archives():
                         article_url = 'https://www.eater.com' + article_url
                         
                     logger.info(f"Processing article {idx}/{len(entries)} on page {page}")
-                    scrape_eater_page(article_url, output_csv)
+                    scrape_eater_page(article_url, output_csv, driver)
                     time.sleep(2)
             
     except requests.Timeout:
@@ -275,6 +264,8 @@ def scrape_eater_archives():
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
     finally:
+        if driver:
+            driver.quit()
         post_process_cleaned_data()
 
 if __name__ == "__main__":

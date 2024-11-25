@@ -11,6 +11,7 @@ PROCESSED_DATA_DIR = DATA_DIR / "processed"
 RAW_RESTAURANTS_CSV = RAW_DATA_DIR / "raw_restaurants.csv"
 CLEANED_RESTAURANTS_CSV = RAW_DATA_DIR / "cleaned_restaurants.csv"
 ENHANCED_RESTAURANTS_CSV = PROCESSED_DATA_DIR / "cleaned_restaurants_enhanced.csv"
+MISSING_RESTAURANTS_CSV = RAW_DATA_DIR / "missing_restaurants.csv"
 
 REQUIRED_RESTAURANT_FIELDS = [
     'Restaurant Name',
@@ -54,7 +55,7 @@ EXPECTED_GOOGLE_FIELDS = [
 EATER_CONFIG = {
     'base_url': "https://www.eater.com/maps/archives",
     'page_range': {
-        'start': 2,
+        'start': 1,
         'end': 2
     },
     'user_agents': [

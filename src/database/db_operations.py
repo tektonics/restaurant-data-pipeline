@@ -2,6 +2,7 @@ import psycopg2
 import logging
 import pandas as pd
 from pathlib import Path
+from psycopg2.extras import execute_values
 from ..config.database_config import DATABASE
 from ..config.config import EXPECTED_RESTAURANT_FIELDS, EXPECTED_GOOGLE_FIELDS
 
@@ -35,7 +36,7 @@ class RestaurantDB:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     
-                    -- Restaurant Fields
+                    -- Core Fields
                     restaurant_name TEXT NOT NULL,
                     restaurant_description TEXT,
                     address TEXT,
@@ -53,6 +54,7 @@ class RestaurantDB:
                     star_rating TEXT,
                     number_of_reviews TEXT,
                     restaurant_category TEXT,
+                    price_range TEXT,
                     latitude TEXT,
                     longitude TEXT,
                     accessibility TEXT,
@@ -70,6 +72,7 @@ class RestaurantDB:
                     pets TEXT,
                     children TEXT,
                     from_the_business TEXT,
+                    doesnt_offer TEXT,
                     
                     CONSTRAINT restaurants_unique_name_address UNIQUE(restaurant_name, cleaned_address)
                 )
@@ -88,55 +91,36 @@ class RestaurantDB:
             raise
 
     def insert_restaurant_data(self, df):
+        df.columns = [col.lower().replace(' ', '_') for col in df.columns]
+        
+        df = df.astype(object).where(pd.notnull(df), None)
+        records = df.to_records(index=False)
+        data = [tuple(None if isinstance(x, float) and pd.isna(x) else 
+                      x.item() if hasattr(x, 'item') else x 
+                      for x in record) 
+                for record in records]
+
+        update_cols = [col for col in df.columns if col != 'id']
+        update_stmt = ", ".join([
+            f"{col} = EXCLUDED.{col}" 
+            for col in update_cols
+        ])
+
+        insert_query = f"""
+            INSERT INTO restaurants ({', '.join(df.columns)})
+            VALUES %s
+            ON CONFLICT (restaurant_name, cleaned_address) DO UPDATE SET
+            {update_stmt}
+        """
+
         try:
-            # Convert column names to lowercase and replace spaces with underscores
-            df.columns = [col.lower().replace(' ', '_') for col in df.columns]
-            
-            # Define all columns for insertion
-            columns = [
-                # Restaurant Fields
-                'restaurant_name', 'restaurant_description', 'address', 
-                'phone', 'website', 'google_maps_link', 'embedded_links', 
-                'venue_id',
-                
-                # Google Fields
-                'star_rating', 'number_of_reviews', 'restaurant_category',
-                'latitude', 'longitude', 'accessibility', 'service_options',
-                'highlights', 'popular_for', 'offerings', 'dining_options',
-                'amenities', 'atmosphere', 'crowd', 'planning', 'payments',
-                'parking', 'pets', 'children', 'from_the_business',
-                
-                # Additional processed fields
-                'cleaned_address', 'city', 'state', 'zip'
-            ]
-            
-            # Ensure all columns exist in DataFrame, fill with None if missing
-            for col in columns:
-                if col not in df.columns:
-                    df[col] = None
-            
-            # Convert DataFrame to list of tuples for insertion
-            values = [tuple(x) for x in df[columns].values]
-            
-            # Use execute_values for better performance
-            from psycopg2.extras import execute_values
-            execute_values(
-                self.cursor,
-                f"""
-                INSERT INTO restaurants (
-                    {', '.join(columns)}
-                )
-                VALUES %s
-                ON CONFLICT ON CONSTRAINT restaurants_unique_name_address DO NOTHING
-                """,
-                values
-            )
-            
+            with self.conn.cursor() as cur:
+                execute_values(cur, insert_query, data)
             self.conn.commit()
-            logger.info(f"Successfully inserted {len(df)} records")
+            print(f"Successfully upserted {len(data)} records")
         except Exception as e:
-            logger.error(f"Error inserting data: {e}")
             self.conn.rollback()
+            print(f"Error inserting data: {str(e)}")
             raise
 
     def close(self):
